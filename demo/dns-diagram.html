@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNS Semantic Layer - Detailed Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #0d1117; 
+            color: #c9d1d9; 
+            padding: 40px 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #58a6ff; margin-bottom: 10px; font-size: 2.5rem; }
+        h2 { color: #7ee787; margin-top: 40px; margin-bottom: 20px; font-size: 1.8rem; }
+        h3 { color: #f0883e; margin-top: 30px; margin-bottom: 15px; font-size: 1.3rem; }
+        .subtitle { color: #8b949e; font-size: 1.2rem; margin-bottom: 40px; }
+        .diagram-container { 
+            background: #161b22; 
+            border-radius: 12px; 
+            padding: 30px; 
+            margin: 30px 0; 
+            border: 1px solid #30363d;
+            overflow-x: auto;
+        }
+        .diagram-container .mermaid { 
+            display: flex; 
+            justify-content: center;
+            min-height: 400px;
+        }
+        .info-box {
+            background: #161b22;
+            border-left: 4px solid #58a6ff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .info-box h4 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+        .attribute-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .attribute-card {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #30363d;
+        }
+        .attribute-card h4 {
+            color: #7ee787;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .attribute-card .type {
+            color: #f0883e;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        .attribute-card .mapping {
+            background: #0d1117;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            color: #79c0ff;
+            margin: 10px 0;
+        }
+        .attribute-card .synonyms {
+            margin-top: 10px;
+        }
+        .synonym-tag {
+            display: inline-block;
+            background: #21262d;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #8b949e;
+            margin: 4px 4px 4px 0;
+        }
+        .metric-card {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #30363d;
+            margin: 15px 0;
+        }
+        .metric-card h4 {
+            color: #f0883e;
+            margin-bottom: 10px;
+        }
+        .metric-card .formula {
+            background: #0d1117;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            color: #79c0ff;
+            margin: 10px 0;
+        }
+        .legend {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #30363d;
+        }
+        .legend h4 {
+            color: #58a6ff;
+            margin-bottom: 15px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 15px;
+        }
+        .back-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #238636;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .back-link:hover {
+            background: #2ea043;
+        }
+        .threat-tag {
+            display: inline-block;
+            background: #f85149;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: white;
+            margin: 4px 4px 4px 0;
+        }
+        code {
+            background: #21262d;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9em;
+            color: #79c0ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔷 DNS Semantic Layer</h1>
+        <p class="subtitle">Complete attribute mapping and threat detection model</p>
+        
+        <a href="/viz/" class="back-link">← Back to Dashboard</a>
+        
+        <div class="info-box">
+            <h4>📊 Model Overview</h4>
+            <p><strong>Name:</strong> dns-analytics-enhanced</p>
+            <p><strong>OCSF Version:</strong> 1.6.0</p>
+            <p><strong>Source Event Class:</strong> 4003 (DNS Activity)</p>
+            <p><strong>Attributes:</strong> 10 semantic attributes mapped to OCSF fields</p>
+            <p><strong>Metrics:</strong> 4 security-focused metrics</p>
+            <p><strong>Observables:</strong> Hostnames (type 1) and IP Addresses (type 2)</p>
+        </div>
+
+        <h2>📐 Complete Entity Diagram</h2>
+        <p style="margin-bottom: 20px; color: #8b949e;">This diagram shows the DNS Event entity with all attributes, their OCSF field mappings, and relationships to threat intelligence sources.</p>
+        
+        <div class="diagram-container">
+            <div class="mermaid">
+classDiagram
+    class DNS_Event {
+        <<Semantic Entity>>
+        +query_hostname: string
+        +query_type: string
+        +source_ip: string
+        +source_port: integer
+        +response_code: string
+        +action: string
+        +severity: string
+        +cloud_provider: string
+        +cloud_region: string
+        +event_time: timestamp
+        ---
+        OCSF Class: 4003
+        Observable Types: 1, 2
+    }
+    
+    class OCSF_DNS_Activity {
+        <<OCSF Class 4003>>
+        +query.hostname
+        +query.type
+        +src_endpoint.ip
+        +src_endpoint.port
+        +rcode
+        +action
+        +severity
+        +cloud.provider
+        +cloud.region
+        +time
+        +metadata.uid
+    }
+    
+    class Threat_Intel_Domains {
+        <<External>>
+        +domain: string
+        +threat_type: string
+        +confidence: float
+        +first_seen: timestamp
+        +last_seen: timestamp
+    }
+    
+    class Threat_Intel_IPs {
+        <<External>>
+        +ip_address: string
+        +threat_type: string
+        +confidence: float
+        +first_seen: timestamp
+        +last_seen: timestamp
+    }
+    
+    class DNS_Observables {
+        <<Hot Path Table>>
+        +observable_type: integer
+        +observable_value: string
+        +event_uid: string
+        +event_time: timestamp
+        +source_ip: string
+    }
+    
+    DNS_Event --|> OCSF_DNS_Activity : maps to
+    DNS_Event --> Threat_Intel_Domains : query_hostname matches
+    DNS_Event --> Threat_Intel_IPs : source_ip matches
+    DNS_Event --> DNS_Observables : extracts to
+    
+    note for DNS_Event "Semantic abstraction with\nbusiness-friendly names\nand threat context"
+    note for OCSF_DNS_Activity "Physical OCSF schema\nwith nested attributes"
+    note for DNS_Observables "Fast lookup table for\nthreat intel matching"
+            </div>
+        </div>
+
+        <h2>🔍 Attribute Details</h2>
+        <p style="margin-bottom: 20px; color: #8b949e;">Each attribute includes synonyms for natural language queries, OCSF field mappings, and security context.</p>
+        
+        <div class="attribute-grid">
+            <div class="attribute-card">
+                <h4>query_hostname</h4>
+                <div class="type">Type: string | Dimension | Observable</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">The fully qualified domain name being queried</p>
+                <div class="mapping">OCSF: query.hostname</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">domain</span>
+                    <span class="synonym-tag">fqdn</span>
+                    <span class="synonym-tag">hostname</span>
+                    <span class="synonym-tag">queried_domain</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="threat-tag">DGA detection</span>
+                    <span class="threat-tag">DNS tunneling</span>
+                    <span class="threat-tag">C2 beaconing</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>query_type</h4>
+                <div class="type">Type: string | Dimension</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">DNS record type being queried (A, AAAA, TXT, etc.)</p>
+                <div class="mapping">OCSF: query.type</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">record_type</span>
+                    <span class="synonym-tag">dns_type</span>
+                    <span class="synonym-tag">qtype</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="threat-tag">DNS tunneling</span>
+                    <span class="threat-tag">Data exfiltration</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>source_ip</h4>
+                <div class="type">Type: string | Dimension | Observable</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">IP address of the client making the DNS query</p>
+                <div class="mapping">OCSF: src_endpoint.ip</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">client_ip</span>
+                    <span class="synonym-tag">src_ip</span>
+                    <span class="synonym-tag">source_address</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="threat-tag">Compromised host</span>
+                    <span class="threat-tag">Lateral movement</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>source_port</h4>
+                <div class="type">Type: integer</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">Source port number of the DNS query</p>
+                <div class="mapping">OCSF: src_endpoint.port</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">client_port</span>
+                    <span class="synonym-tag">src_port</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>response_code</h4>
+                <div class="type">Type: string | Dimension</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">DNS response code (NOERROR, NXDOMAIN, SERVFAIL, etc.)</p>
+                <div class="mapping">OCSF: rcode</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">rcode</span>
+                    <span class="synonym-tag">dns_response</span>
+                    <span class="synonym-tag">response_status</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="threat-tag">DGA detection</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>action</h4>
+                <div class="type">Type: string | Dimension</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">Action taken on the DNS query (Allowed, Blocked, etc.)</p>
+                <div class="mapping">OCSF: action</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">disposition</span>
+                    <span class="synonym-tag">verdict</span>
+                    <span class="synonym-tag">dns_action</span>
+                </div>
+                <div style="margin-top: 10px;">
+                    <span class="threat-tag">Policy enforcement</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>severity</h4>
+                <div class="type">Type: string | Dimension</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">Event severity level</p>
+                <div class="mapping">OCSF: severity</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">severity_level</span>
+                    <span class="synonym-tag">priority</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>cloud_provider</h4>
+                <div class="type">Type: string | Dimension</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">Cloud service provider hosting the DNS infrastructure</p>
+                <div class="mapping">OCSF: cloud.provider</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">csp</span>
+                    <span class="synonym-tag">provider</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>cloud_region</h4>
+                <div class="type">Type: string | Dimension</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">Cloud region where the DNS query originated</p>
+                <div class="mapping">OCSF: cloud.region</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">region</span>
+                    <span class="synonym-tag">datacenter</span>
+                </div>
+            </div>
+
+            <div class="attribute-card">
+                <h4>event_time</h4>
+                <div class="type">Type: timestamp</div>
+                <p style="color: #8b949e; font-size: 0.9rem; margin: 10px 0;">Timestamp when the DNS query occurred</p>
+                <div class="mapping">OCSF: time</div>
+                <div class="synonyms">
+                    <strong style="color: #8b949e; font-size: 0.85rem;">Synonyms:</strong><br>
+                    <span class="synonym-tag">timestamp</span>
+                    <span class="synonym-tag">time</span>
+                    <span class="synonym-tag">query_time</span>
+                </div>
+            </div>
+        </div>
+
+        <h2>📊 Security Metrics</h2>
+        <p style="margin-bottom: 20px; color: #8b949e;">Pre-built metrics for DNS threat detection and analytics.</p>
+
+        <div class="metric-card">
+            <h4>dns_query_count</h4>
+            <p style="color: #8b949e; margin: 10px 0;">Total number of DNS queries</p>
+            <div class="formula">COUNT(metadata.uid)</div>
+            <p style="color: #8b949e; font-size: 0.85rem; margin-top: 10px;">
+                <strong>Dimensions:</strong> query_hostname, source_ip, action<br>
+                <strong>Time Granularities:</strong> hour, day
+            </p>
+        </div>
+
+        <div class="metric-card">
+            <h4>blocked_dns_rate</h4>
+            <p style="color: #8b949e; margin: 10px 0;">Percentage of blocked DNS queries</p>
+            <div class="formula">AVG(CASE WHEN action != 'Allowed' THEN 1.0 ELSE 0.0 END)</div>
+            <p style="color: #8b949e; font-size: 0.85rem; margin-top: 10px;">
+                <strong>Dimensions:</strong> source_ip, cloud_region<br>
+                <strong>Time Granularities:</strong> hour, day
+            </p>
+        </div>
+
+        <div class="metric-card">
+            <h4>dns_by_severity</h4>
+            <p style="color: #8b949e; margin: 10px 0;">Count of DNS events grouped by severity</p>
+            <div class="formula">COUNT(metadata.uid)</div>
+            <p style="color: #8b949e; font-size: 0.85rem; margin-top: 10px;">
+                <strong>Dimensions:</strong> severity, action<br>
+                <strong>Time Granularities:</strong> hour, day
+            </p>
+        </div>
+
+        <div class="metric-card">
+            <h4>nxdomain_rate</h4>
+            <p style="color: #8b949e; margin: 10px 0;">Percentage of DNS queries resulting in NXDOMAIN (potential DGA indicator)</p>
+            <div class="formula">AVG(CASE WHEN response_code = 'NXDOMAIN' THEN 1.0 ELSE 0.0 END)</div>
+            <p style="color: #8b949e; font-size: 0.85rem; margin-top: 10px;">
+                <strong>Dimensions:</strong> source_ip, cloud_region<br>
+                <strong>Time Granularities:</strong> hour, day<br>
+                <strong>Security Use Case:</strong> DGA detection - high NXDOMAIN rates indicate domain generation algorithm activity
+            </p>
+        </div>
+
+        <h2>🔗 Entity Relationships</h2>
+        
+        <div class="diagram-container">
+            <div class="mermaid">
+graph LR
+    DNS[DNS Event] -->|query_hostname matches| TID[Threat Intel Domains]
+    DNS -->|source_ip matches| TII[Threat Intel IPs]
+    DNS -->|extracts observables| OBS[DNS Observables Table]
+    
+    TID -->|provides| TC1[Threat Context]
+    TII -->|provides| TC2[Threat Context]
+    OBS -->|enables| FAST[Fast Threat Matching]
+    
+    style DNS fill:#4a90d9,stroke:#2c5aa0,color:#fff
+    style TID fill:#f85149,stroke:#c93c37,color:#fff
+    style TII fill:#f85149,stroke:#c93c37,color:#fff
+    style OBS fill:#f0883e,stroke:#c78c1c,color:#fff
+    style TC1 fill:#7ee787,stroke:#5ca018,color:#000
+    style TC2 fill:#7ee787,stroke:#5ca018,color:#000
+    style FAST fill:#7ee787,stroke:#5ca018,color:#000
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h4>🔥 Hot/Cold Path Architecture</h4>
+            <p><strong>Hot Path (dns_observables table):</strong> Fast lookup table containing extracted hostnames and IP addresses for rapid threat intelligence matching. Optimized for high-speed IOC queries.</p>
+            <p style="margin-top: 10px;"><strong>Cold Path (full DNS events):</strong> Complete DNS event records with all attributes for detailed investigation and forensic analysis. Used when hot path identifies a match.</p>
+        </div>
+
+        <h2>🎯 MITRE ATT&CK Coverage</h2>
+        
+        <div class="diagram-container">
+            <div class="mermaid">
+mindmap
+  root((DNS Threat Detection))
+    Application Layer Protocol
+      T1071.004 DNS
+        query_hostname
+        query_type
+        response_code
+    Dynamic Resolution
+      T1568.002 DGA
+        query_hostname
+        response_code
+        nxdomain_rate metric
+    Exfiltration
+      T1048.003 DNS Tunneling
+        query_type
+        query_hostname
+        TXT/NULL records
+    Discovery
+      Compromised Hosts
+        source_ip
+        query patterns
+        blocked_dns_rate metric
+            </div>
+        </div>
+
+        <div class="legend">
+            <h4>📖 Legend</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4a90d9;"></div>
+                <span>Semantic Entity - Business-friendly abstraction</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #7ee787;"></div>
+                <span>OCSF Class - Physical schema structure</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f85149;"></div>
+                <span>Threat Intelligence - External IOC sources</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #f0883e;"></div>
+                <span>Hot Path Table - Fast lookup for threat matching</span>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 Usage Examples</h4>
+            <p><strong>Natural Language Query:</strong> "Show me blocked domains from suspicious sources"</p>
+            <p style="margin-top: 5px;"><strong>Translates to:</strong> <code>SELECT query_hostname, source_ip, action FROM dns_event WHERE action = 'Blocked'</code></p>
+            <br>
+            <p><strong>Natural Language Query:</strong> "What's the NXDOMAIN rate by region?"</p>
+            <p style="margin-top: 5px;"><strong>Translates to:</strong> <code>SELECT cloud_region, AVG(CASE WHEN response_code = 'NXDOMAIN' THEN 1.0 ELSE 0.0 END) FROM dns_event GROUP BY cloud_region</code></p>
+        </div>
+
+        <a href="/viz/" class="back-link">← Back to Dashboard</a>
+        <a href="/STATUS.html" class="back-link" style="background: #21262d;">View Status Page</a>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#58a6ff',
+                primaryTextColor: '#c9d1d9',
+                primaryBorderColor: '#30363d',
+                lineColor: '#6e7681',
+                secondaryColor: '#161b22',
+                tertiaryColor: '#21262d',
+                background: '#0d1117',
+                mainBkg: '#161b22',
+                nodeBorder: '#30363d',
+                clusterBkg: '#161b22',
+                clusterBorder: '#30363d',
+                titleColor: '#c9d1d9',
+                edgeLabelBackground: '#161b22',
+                nodeTextColor: '#c9d1d9'
+            },
+            flowchart: {
+                curve: 'basis',
+                padding: 20
+            },
+            class: {
+                padding: 20
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+    "name": "metadata",
+    "caption": "Metadata",
+    "description": "Event metadata",
+    "attributes": {
+        "uid": {
+            "type": "string_t",
+            "caption": "Unique ID",
+            "requirement": "required"
+        }
+    }
+}

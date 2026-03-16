@@ -1,0 +1,26 @@
+[package]
+name = "etl-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+etl-core = { path = "../etl-core" }
+codegen-adapter = { path = "../codegen-adapter" }
+semantic-bridge = { path = "../semantic-bridge" }
+warehouse-gen = { path = "../warehouse-gen" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+uuid = { workspace = true }
+tokio = { workspace = true }
+axum = "0.7"
+tower-http = { version = "0.6", features = ["cors"] }
+async-trait = "0.1"
+tokio-stream = "0.1"
+futures = "0.3"
+
+[dev-dependencies]
+proptest = { workspace = true }
+tempfile = "3"

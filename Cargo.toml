@@ -1,0 +1,81 @@
+[workspace]
+resolver = "2"
+members = [
+    "ocsf-core",
+    "ocsf-semantic",
+    "ocsf-vector",
+    "ocsf-warehouse",
+    "ocsf-viz",
+    "ocsf-cli",
+    "ocsf-editor",
+    "ocsf-index",
+    "ocsf-catalog",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+repository = "https://github.com/example/ocsf-semantic-layer"
+authors = ["OCSF Semantic Layer Contributors"]
+description = "Semantic abstraction layer for the Open Cybersecurity Schema Framework (OCSF)"
+keywords = ["ocsf", "security", "semantic-layer", "cybersecurity", "data-warehouse"]
+categories = ["database", "command-line-utilities"]
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Web framework
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+
+# Testing
+proptest = "1.4"
+http-body-util = "0.1"
+tempfile = "3.0"
+
+# Binary serialization
+bincode = "1.3"
+
+# Memory-mapped files
+memmap2 = "0.9"
+
+# CRC32 checksum
+crc32fast = "1.4"
+
+# Async trait support
+async-trait = "0.1"
+
+# UUID generation
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Internal crates
+ocsf-core = { path = "ocsf-core" }
+ocsf-semantic = { path = "ocsf-semantic" }
+ocsf-vector = { path = "ocsf-vector" }
+ocsf-warehouse = { path = "ocsf-warehouse" }
+ocsf-viz = { path = "ocsf-viz" }
+ocsf-editor = { path = "ocsf-editor" }
+ocsf-index = { path = "ocsf-index" }
+ocsf-catalog = { path = "ocsf-catalog" }

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCSF Dashboard Status</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 40px; max-width: 1200px; margin: 0 auto; }
+        h1 { color: #58a6ff; margin-bottom: 20px; }
+        h2 { color: #7ee787; margin-top: 30px; margin-bottom: 15px; }
+        .status { background: #161b22; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid #30363d; }
+        .success { color: #7ee787; }
+        .error { color: #f85149; }
+        .info { color: #79c0ff; }
+        pre { background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; border: 1px solid #30363d; }
+        .btn { display: inline-block; padding: 10px 20px; background: #238636; color: white; text-decoration: none; border-radius: 6px; margin: 10px 10px 10px 0; }
+        .btn:hover { background: #2ea043; }
+        .loading { color: #f0883e; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #30363d; }
+        th { color: #58a6ff; }
+        .check { color: #7ee787; font-weight: bold; }
+        .cross { color: #f85149; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🔷 OCSF Semantic Layer Dashboard - Status Check</h1>
+    
+    <div class="status">
+        <h2>Server Status</h2>
+        <p class="success">✓ Web server is running on port 8888</p>
+        <p class="info">Base URL: http://localhost:8888/\</p\>
+    </div>
+
+    <div class="status">
+        <h2>Quick Links</h2>
+        <a href="/viz/" class="btn">Open Dashboard</a>
+        <a href="/dns-diagram.html" class="btn">📐 Detailed DNS Diagram</a>
+        <a href="/databricks-flow.html" class="btn">🔄 Databricks Data Flow</a>
+        <a href="/llm-agent-usecase.html" class="btn">🤖 Agentic LLM Use Case</a>
+        <a href="/test-load.html" class="btn">Test Data Loading</a>
+        <a href="/ACCESS-DASHBOARD.md" class="btn">Access Guide</a>
+        <a href="/DATABRICKS-EXAMPLE.md" class="btn">📄 Databricks Guide</a>
+    </div>
+
+    <div class="status">
+        <h2>Data Files Status</h2>
+        <p class="loading">⏳ Checking files...</p>
+        <table id="fileStatus">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Status</th>
+                    <th>Size</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody id="fileTableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="status">
+        <h2>DNS Test Event Preview</h2>
+        <pre id="dnsEvent">Loading...</pre>
+    </div>
+
+    <div class="status">
+        <h2>Graph Data Preview</h2>
+        <pre id="graphData">Loading...</pre>
+    </div>
+
+    <div class="status">
+        <h2>Model Summary</h2>
+        <pre id="modelSummary">Loading...</pre>
+    </div>
+
+    <script>
+        const files = [
+            { path: 'output/graph.json', desc: 'Graph visualization data' },
+            { path: 'semantic-model.yaml', desc: 'Enhanced DNS semantic model' },
+            { path: 'test-dns-event.json', desc: 'DNS test event (OCSF 4003)' },
+            { path: 'output/llm-context.json', desc: 'LLM context export (full)' },
+            { path: 'output/llm-context-minimal.json', desc: 'LLM context export (minimal)' },
+            { path: 'output/dbt/semantic_manifest.yml', desc: 'dbt semantic manifest' },
+            { path: 'output/cubejs/DnsEvent.js', desc: 'Cube.js DNS schema' },
+            { path: 'output/views/v_dns_event.sql', desc: 'DNS event SQL view' },
+            { path: 'output/tables/ocsf_dns.sql', desc: 'DNS table schema' },
+            { path: 'output/observables/observables_table.sql', desc: 'Observables table' },
+            { path: 'output/etl/extract_observables.sql', desc: 'ETL pipeline' }
+        ];
+
+        async function checkFiles() {
+            const tbody = document.getElementById('fileTableBody');
+            tbody.innerHTML = '';
+            
+            for (const file of files) {
+                const row = tbody.insertRow();
+                const cellPath = row.insertCell(0);
+                const cellStatus = row.insertCell(1);
+                const cellSize = row.insertCell(2);
+                const cellDesc = row.insertCell(3);
+                
+                cellPath.innerHTML = `<code>${file.path}</code>`;
+                cellDesc.textContent = file.desc;
+                
+                try {
+                    const res = await fetch(file.path);
+                    if (res.ok) {
+                        const text = await res.text();
+                        cellStatus.innerHTML = '<span class="check">✓</span>';
+                        cellSize.textContent = `${(text.length / 1024).toFixed(1)} KB`;
+                    } else {
+                        cellStatus.innerHTML = '<span class="cross">✗</span>';
+                        cellSize.textContent = `Error ${res.status}`;
+                    }
+                } catch (e) {
+                    cellStatus.innerHTML = '<span class="cross">✗</span>';
+                    cellSize.textContent = e.message;
+                }
+            }
+        }
+
+        async function loadPreviews() {
+            try {
+                const dnsEvent = await (await fetch('test-dns-event.json')).json();
+                document.getElementById('dnsEvent').textContent = JSON.stringify({
+                    class_name: dnsEvent.class_name,
+                    class_uid: dnsEvent.class_uid,
+                    query: dnsEvent.query,
+                    src_endpoint: dnsEvent.src_endpoint,
+                    observables: dnsEvent.observables.map(o => ({ type: o.type, value: o.value }))
+                }, null, 2);
+            } catch (e) {
+                document.getElementById('dnsEvent').textContent = `Error: ${e.message}`;
+            }
+
+            try {
+                const graph = await (await fetch('output/graph.json')).json();
+                document.getElementById('graphData').textContent = JSON.stringify({
+                    nodes: graph.nodes.length,
+                    edges: graph.edges.length,
+                    entities: graph.nodes.filter(n => n.type === 'semantic_entity').map(n => n.label),
+                    view_mode: graph.metadata.view_mode
+                }, null, 2);
+            } catch (e) {
+                document.getElementById('graphData').textContent = `Error: ${e.message}`;
+            }
+
+            try {
+                const model = await (await fetch('semantic-model.yaml')).text();
+                const lines = model.split('\n');
+                const summary = {
+                    name: lines.find(l => l.startsWith('name:'))?.split(':')[1]?.trim(),
+                    version: lines.find(l => l.startsWith('version:'))?.split(':')[1]?.trim(),
+                    ocsf_version: lines.find(l => l.startsWith('ocsf_version:'))?.split(':')[1]?.trim(),
+                    entities: (model.match(/- name:/g) || []).length,
+                    total_lines: lines.length
+                };
+                document.getElementById('modelSummary').textContent = JSON.stringify(summary, null, 2);
+            } catch (e) {
+                document.getElementById('modelSummary').textContent = `Error: ${e.message}`;
+            }
+        }
+
+        checkFiles();
+        loadPreviews();
+    </script>
+</body>
+</html>

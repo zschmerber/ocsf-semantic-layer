@@ -1,0 +1,21 @@
+[package]
+name = "codegen-adapter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+etl-core = { path = "../etl-core" }
+serde_yaml = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# These will be path deps pointing to sibling repos:
+# ocsf-core = { path = "../../../ocsf-core" }
+# ocsf-semantic = { path = "../../../ocsf-semantic" }
+# pipeline-codegen = { path = "../../../ocsf_delta_tangent/crates/pipeline-codegen" }
+
+[dev-dependencies]
+proptest = { workspace = true }
+uuid = { workspace = true }

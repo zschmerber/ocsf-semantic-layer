@@ -1,0 +1,4 @@
+sources:
+- name: ocsf
+  tables:
+  - name: ocsf_4003

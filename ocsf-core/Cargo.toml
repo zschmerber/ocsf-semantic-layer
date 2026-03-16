@@ -1,0 +1,20 @@
+[package]
+name = "ocsf-core"
+description = "Core OCSF schema data structures and parsing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+dirs = "5.0"
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile = "3.10"

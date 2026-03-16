@@ -1,0 +1,21 @@
+[package]
+name = "ocsf-vector"
+description = "Embeddings and vector store for mapping assistance"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+ocsf-core.workspace = true
+ocsf-semantic.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }

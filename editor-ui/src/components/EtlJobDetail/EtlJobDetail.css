@@ -1,0 +1,190 @@
+/**
+ * Styles for the EtlJobDetail component.
+ *
+ * Job metadata grid, status badges, lifecycle action buttons,
+ * and layout for embedded artifact viewer and log panel.
+ */
+
+.etl-job-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Header with back button and title */
+.etl-job-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.etl-job-detail-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+.btn-back {
+  padding: 0.375rem 0.75rem;
+  background: var(--btn-secondary-bg, #fafbfc);
+  color: var(--text-secondary, #586069);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+  background: var(--btn-secondary-hover, #f3f4f6);
+  border-color: var(--border-hover, #d1d5da);
+}
+
+/* Metadata grid */
+.etl-job-metadata {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.375rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary, #fafbfc);
+}
+
+.etl-job-metadata dt {
+  font-weight: 600;
+  color: var(--text-secondary, #586069);
+  white-space: nowrap;
+}
+
+.etl-job-metadata dd {
+  margin: 0;
+  color: var(--text-primary, #24292e);
+  word-break: break-all;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background: #6b7280;
+  color: white;
+}
+
+.status-active {
+  background: #3b82f6;
+  color: white;
+}
+
+.status-running {
+  background: #10b981;
+  color: white;
+}
+
+.status-completed {
+  background: #059669;
+  color: white;
+}
+
+.status-failed {
+  background: #ef4444;
+  color: white;
+}
+
+/* Lifecycle action buttons */
+.etl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.etl-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e1e4e8);
+  background: var(--btn-secondary-bg, #fafbfc);
+  color: var(--text-primary, #24292e);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.etl-action-btn:hover:not(:disabled) {
+  background: var(--btn-secondary-hover, #f3f4f6);
+  border-color: var(--border-hover, #d1d5da);
+}
+
+.etl-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.etl-action-btn .spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color, #e1e4e8);
+  border-top-color: var(--accent-fg, #0969da);
+  border-radius: 50%;
+  animation: etl-detail-spin 0.6s linear infinite;
+}
+
+@keyframes etl-detail-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Action error */
+.etl-action-error {
+  padding: 0.5rem 0.75rem;
+  background: rgba(215, 58, 73, 0.1);
+  color: #cb2431;
+  border: 1px solid rgba(215, 58, 73, 0.3);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+/* Loading / error states */
+.etl-job-detail-loading,
+.etl-job-detail-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--text-muted, #6a737d);
+  font-size: 0.875rem;
+}
+
+.etl-job-detail-loading .spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color, #e1e4e8);
+  border-top-color: var(--accent-fg, #0969da);
+  border-radius: 50%;
+  animation: etl-detail-spin 0.6s linear infinite;
+}
+
+.etl-job-detail-error {
+  color: #cb2431;
+  flex-direction: column;
+  gap: 0.75rem;
+}

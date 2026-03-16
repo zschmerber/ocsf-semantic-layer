@@ -1,0 +1,14 @@
+{
+  "expected": {
+    "category_uid": 4,
+    "class_uid": 4003,
+    "dst_endpoint.ip": "test_dst_ip",
+    "query.hostname": "test_hostname",
+    "src_endpoint.ip": "test_src_ip"
+  },
+  "input": {
+    "dst_ip": "test_dst_ip",
+    "hostname": "test_hostname",
+    "src_ip": "test_src_ip"
+  }
+}

@@ -1,0 +1,45 @@
+{
+    "uid": 3002,
+    "name": "authentication",
+    "category": "3",
+    "caption": "Authentication",
+    "description": "Authentication events",
+    "attributes": {
+        "actor": {
+            "requirement": "required",
+            "group": "primary"
+        },
+        "src_endpoint": {
+            "requirement": "recommended"
+        },
+        "status_id": {
+            "requirement": "required"
+        },
+        "time": {
+            "requirement": "required"
+        },
+        "metadata": {
+            "requirement": "required"
+        }
+    },
+    "observables": [
+        {
+            "type_id": 10,
+            "type_name": "User Name",
+            "type": "by_path",
+            "path": "actor.user.name"
+        },
+        {
+            "type_id": 5,
+            "type_name": "Email Address",
+            "type": "by_path",
+            "path": "actor.user.email_addr"
+        },
+        {
+            "type_id": 2,
+            "type_name": "IP Address",
+            "type": "by_path",
+            "path": "src_endpoint.ip"
+        }
+    ]
+}

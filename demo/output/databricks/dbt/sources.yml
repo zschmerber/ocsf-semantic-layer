@@ -1,0 +1,7 @@
+sources:
+- name: ocsf
+  tables:
+  - name: ocsf_class_4003
+    description: OCSF event class 4003
+  - name: dns_observables
+    description: OCSF observables table for hot path analytics

@@ -1,0 +1,23 @@
+# Rust
+/target/
+Cargo.lock
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Node.js
+node_modules/
+editor-ui/node_modules/
+
+# Build outputs
+editor-ui/dist/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local

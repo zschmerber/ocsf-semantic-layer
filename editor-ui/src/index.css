@@ -1,0 +1,119 @@
+/* CSS Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Background colors - matching demo/viz/index.html */
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-hover: #30363d;
+
+  /* Text colors */
+  --text-primary: #c9d1d9;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+
+  /* Accent colors */
+  --accent-blue: #58a6ff;
+  --accent-green: #7ee787;
+  --accent-orange: #f0883e;
+  --accent-purple: #a371f7;
+  --accent-red: #f85149;
+  --accent-cyan: #79c0ff;
+
+  /* Border colors */
+  --border-primary: #30363d;
+  --border-secondary: #21262d;
+
+  /* Button colors */
+  --btn-primary-bg: #238636;
+  --btn-primary-hover: #2ea043;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Font sizes */
+  --font-xs: 0.75rem;
+  --font-sm: 0.85rem;
+  --font-md: 0.9rem;
+  --font-lg: 1rem;
+  --font-xl: 1.1rem;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-blue);
+  color: var(--bg-primary);
+}
+
+/* Code/monospace font */
+code,
+pre,
+.mono {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas,
+    'Liberation Mono', Menlo, Courier, monospace;
+}

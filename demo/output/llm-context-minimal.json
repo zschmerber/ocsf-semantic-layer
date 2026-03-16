@@ -1,0 +1,343 @@
+{
+  "model_name": "dns-analytics-enhanced",
+  "version": "1.0",
+  "entities": [
+    {
+      "name": "dns_event",
+      "caption": "DNS Event",
+      "attributes": [
+        {
+          "name": "query_hostname",
+          "caption": "Query Hostname",
+          "type": "string",
+          "synonyms": [
+            "domain",
+            "fqdn",
+            "hostname",
+            "queried_domain"
+          ],
+          "is_dimension": true,
+          "is_observable": true
+        },
+        {
+          "name": "query_type",
+          "caption": "Query Type",
+          "type": "string",
+          "synonyms": [
+            "record_type",
+            "dns_type",
+            "qtype"
+          ],
+          "is_dimension": true
+        },
+        {
+          "name": "source_ip",
+          "caption": "Source IP",
+          "type": "string",
+          "synonyms": [
+            "client_ip",
+            "src_ip",
+            "source_address"
+          ],
+          "is_dimension": true,
+          "is_observable": true
+        },
+        {
+          "name": "source_port",
+          "caption": "Source Port",
+          "type": "integer",
+          "synonyms": [
+            "client_port",
+            "src_port"
+          ]
+        },
+        {
+          "name": "response_code",
+          "caption": "Response Code",
+          "type": "string",
+          "synonyms": [
+            "rcode",
+            "dns_response",
+            "response_status"
+          ],
+          "is_dimension": true
+        },
+        {
+          "name": "action",
+          "caption": "Action",
+          "type": "string",
+          "synonyms": [
+            "disposition",
+            "verdict",
+            "dns_action"
+          ],
+          "is_dimension": true
+        },
+        {
+          "name": "severity",
+          "caption": "Severity",
+          "type": "string",
+          "synonyms": [
+            "severity_level",
+            "priority"
+          ],
+          "is_dimension": true
+        },
+        {
+          "name": "cloud_provider",
+          "caption": "Cloud Provider",
+          "type": "string",
+          "synonyms": [
+            "csp",
+            "provider"
+          ],
+          "is_dimension": true
+        },
+        {
+          "name": "cloud_region",
+          "caption": "Cloud Region",
+          "type": "string",
+          "synonyms": [
+            "region",
+            "datacenter"
+          ],
+          "is_dimension": true
+        },
+        {
+          "name": "event_time",
+          "caption": "Event Time",
+          "type": "timestamp",
+          "synonyms": [
+            "timestamp",
+            "time",
+            "query_time"
+          ]
+        }
+      ]
+    }
+  ],
+  "synonyms": {
+    "datacenter": "cloud_region",
+    "priority": "severity",
+    "timestamp": "event_time",
+    "src_ip": "source_ip",
+    "csp": "cloud_provider",
+    "record_type": "query_type",
+    "qtype": "query_type",
+    "provider": "cloud_provider",
+    "region": "cloud_region",
+    "verdict": "action",
+    "client_ip": "source_ip",
+    "hostname": "query_hostname",
+    "query_time": "event_time",
+    "src_port": "source_port",
+    "rcode": "response_code",
+    "source_address": "source_ip",
+    "time": "event_time",
+    "queried_domain": "query_hostname",
+    "response_status": "response_code",
+    "domain": "query_hostname",
+    "fqdn": "query_hostname",
+    "dns_response": "response_code",
+    "disposition": "action",
+    "severity_level": "severity",
+    "client_port": "source_port",
+    "dns_action": "action",
+    "dns_type": "query_type"
+  },
+  "query_templates": [
+    {
+      "name": "dns_tunneling_high_volume",
+      "intent": "Detect DNS tunneling by identifying hosts with unusually high query volumes",
+      "patterns": [
+        "Find DNS tunneling",
+        "Show hosts with high DNS query volume",
+        "Detect data exfiltration via DNS"
+      ],
+      "sql": "SELECT \n  source_ip,\n  COUNT(*) as query_count,\n  COUNT(DISTINCT query_hostname) as unique_domains,\n  AVG(LENGTH(query_hostname)) as avg_query_length\nFROM dns_event\nWHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nGROUP BY source_ip\nHAVING query_count > {{threshold}}\nORDER BY query_count DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "hours": "24",
+        "limit": "100",
+        "threshold": "10000"
+      },
+      "mitre_technique": "T1071.004 - Application Layer Protocol: DNS",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "dns_tunneling_long_queries",
+      "intent": "Detect DNS tunneling by finding unusually long DNS queries (data encoded in subdomain)",
+      "patterns": [
+        "Find long DNS queries",
+        "Detect encoded data in DNS",
+        "Show DNS queries with long hostnames"
+      ],
+      "sql": "SELECT \n  source_ip,\n  query_hostname,\n  LENGTH(query_hostname) as query_length,\n  time\nFROM dns_event\nWHERE LENGTH(query_hostname) > {{min_length}}\n  AND time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nORDER BY query_length DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "limit": "100",
+        "min_length": "50",
+        "hours": "24"
+      },
+      "mitre_technique": "T1048.003 - Exfiltration Over Alternative Protocol",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "dns_txt_record_abuse",
+      "intent": "Detect potential DNS tunneling via TXT record queries",
+      "patterns": [
+        "Find TXT record queries",
+        "Show DNS TXT lookups",
+        "Detect DNS tunneling via TXT"
+      ],
+      "sql": "SELECT \n  source_ip,\n  query_hostname,\n  COUNT(*) as txt_query_count,\n  MIN(time) as first_seen,\n  MAX(time) as last_seen\nFROM dns_event\nWHERE query_type = 'TXT'\n  AND time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nGROUP BY source_ip, query_hostname\nHAVING txt_query_count > {{threshold}}\nORDER BY txt_query_count DESC",
+      "parameters": {
+        "threshold": "10",
+        "hours": "24"
+      },
+      "mitre_technique": "T1071.004 - Application Layer Protocol: DNS",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "dga_nxdomain_spike",
+      "intent": "Detect DGA activity by finding hosts with high NXDOMAIN response rates",
+      "patterns": [
+        "Find DGA domains",
+        "Detect domain generation algorithm",
+        "Show NXDOMAIN spikes"
+      ],
+      "sql": "SELECT \n  source_ip,\n  COUNT(*) as total_queries,\n  SUM(CASE WHEN response_code = 'NXDOMAIN' THEN 1 ELSE 0 END) as nxdomain_count,\n  ROUND(100.0 * SUM(CASE WHEN response_code = 'NXDOMAIN' THEN 1 ELSE 0 END) / COUNT(*), 2) as nxdomain_rate\nFROM dns_event\nWHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nGROUP BY source_ip\nHAVING nxdomain_rate > {{nxdomain_threshold}}\n  AND total_queries > {{min_queries}}\nORDER BY nxdomain_count DESC",
+      "parameters": {
+        "hours": "24",
+        "nxdomain_threshold": "50.0",
+        "min_queries": "100"
+      },
+      "mitre_technique": "T1568.002 - Dynamic Resolution: Domain Generation Algorithms",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "dga_random_domains",
+      "intent": "Find domains with high entropy (randomness) indicating DGA",
+      "patterns": [
+        "Find random looking domains",
+        "Detect high entropy domains",
+        "Show suspicious domain names"
+      ],
+      "sql": "WITH domain_stats AS (\n  SELECT \n    query_hostname,\n    source_ip,\n    COUNT(*) as query_count,\n    LENGTH(query_hostname) as domain_length,\n    LENGTH(REGEXP_REPLACE(query_hostname, '[^0-9]', '')) as numeric_chars,\n    LENGTH(REGEXP_REPLACE(query_hostname, '[^a-z]', '')) as alpha_chars\n  FROM dns_event\n  WHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\n    AND LENGTH(query_hostname) > 10\n  GROUP BY query_hostname, source_ip\n)\nSELECT *,\n  ROUND(100.0 * numeric_chars / domain_length, 2) as numeric_ratio\nFROM domain_stats\nWHERE numeric_chars > domain_length * 0.3\n  OR domain_length > {{max_normal_length}}\nORDER BY query_count DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "limit": "100",
+        "hours": "24",
+        "max_normal_length": "40"
+      },
+      "mitre_technique": "T1568.002 - Dynamic Resolution: Domain Generation Algorithms",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "fast_flux_detection",
+      "intent": "Detect fast flux DNS by finding domains resolving to many different IPs",
+      "patterns": [
+        "Find fast flux domains",
+        "Detect domains with changing IPs",
+        "Show bulletproof hosting indicators"
+      ],
+      "sql": "SELECT \n  query_hostname,\n  COUNT(DISTINCT answers_rdata) as unique_ips,\n  COUNT(*) as query_count,\n  ARRAY_AGG(DISTINCT answers_rdata) as ip_addresses\nFROM dns_event\nWHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\n  AND answers_rdata IS NOT NULL\nGROUP BY query_hostname\nHAVING unique_ips > {{ip_threshold}}\nORDER BY unique_ips DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "limit": "50",
+        "ip_threshold": "10",
+        "hours": "24"
+      },
+      "mitre_technique": "T1568.001 - Dynamic Resolution: Fast Flux DNS",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "c2_beaconing_regular_intervals",
+      "intent": "Detect C2 beaconing by finding DNS queries at regular time intervals",
+      "patterns": [
+        "Find beaconing activity",
+        "Detect C2 communication",
+        "Show regular DNS patterns"
+      ],
+      "sql": "WITH query_intervals AS (\n  SELECT \n    source_ip,\n    query_hostname,\n    time,\n    LAG(time) OVER (PARTITION BY source_ip, query_hostname ORDER BY time) as prev_time,\n    DATEDIFF(second, LAG(time) OVER (PARTITION BY source_ip, query_hostname ORDER BY time), time) as interval_seconds\n  FROM dns_event\n  WHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\n)\nSELECT \n  source_ip,\n  query_hostname,\n  COUNT(*) as beacon_count,\n  AVG(interval_seconds) as avg_interval,\n  STDDEV(interval_seconds) as interval_stddev,\n  MIN(time) as first_seen,\n  MAX(time) as last_seen\nFROM query_intervals\nWHERE interval_seconds IS NOT NULL\nGROUP BY source_ip, query_hostname\nHAVING beacon_count > {{min_beacons}}\n  AND interval_stddev < avg_interval * {{jitter_threshold}}\nORDER BY beacon_count DESC",
+      "parameters": {
+        "jitter_threshold": "0.2",
+        "min_beacons": "10",
+        "hours": "24"
+      },
+      "mitre_technique": "T1071.004 - Application Layer Protocol: DNS",
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "ioc_domain_match",
+      "intent": "Match DNS queries against known malicious domains from threat intel",
+      "patterns": [
+        "Find known bad domains",
+        "Match against threat intel",
+        "Check IOC matches"
+      ],
+      "sql": "SELECT \n  d.source_ip,\n  d.query_hostname,\n  d.time,\n  d.action,\n  t.threat_type,\n  t.confidence,\n  t.source as intel_source\nFROM dns_event d\nINNER JOIN threat_intel_ioc t \n  ON d.query_hostname = t.indicator\n  OR d.query_hostname LIKE '%.' || t.indicator\nWHERE d.time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\n  AND t.indicator_type = 'domain'\nORDER BY d.time DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "limit": "1000",
+        "hours": "24"
+      },
+      "category": "ThreatDetection"
+    },
+    {
+      "name": "blocked_dns_by_host",
+      "intent": "Find hosts with high rates of blocked DNS queries",
+      "patterns": [
+        "Show blocked DNS queries",
+        "Which hosts are being blocked",
+        "Find policy violations"
+      ],
+      "sql": "SELECT \n  source_ip,\n  COUNT(*) as total_queries,\n  SUM(CASE WHEN action = 'Blocked' THEN 1 ELSE 0 END) as blocked_count,\n  ROUND(100.0 * SUM(CASE WHEN action = 'Blocked' THEN 1 ELSE 0 END) / COUNT(*), 2) as blocked_rate,\n  ARRAY_AGG(DISTINCT query_hostname) FILTER (WHERE action = 'Blocked') as blocked_domains\nFROM dns_event\nWHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nGROUP BY source_ip\nHAVING blocked_count > {{min_blocked}}\nORDER BY blocked_count DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "limit": "100",
+        "hours": "24",
+        "min_blocked": "10"
+      },
+      "category": "Investigation"
+    },
+    {
+      "name": "top_queried_domains",
+      "intent": "Show the most frequently queried domains",
+      "patterns": [
+        "Top DNS queries",
+        "Most queried domains",
+        "Popular domains"
+      ],
+      "sql": "SELECT \n  query_hostname,\n  COUNT(*) as query_count,\n  COUNT(DISTINCT source_ip) as unique_clients,\n  MIN(time) as first_seen,\n  MAX(time) as last_seen\nFROM dns_event\nWHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nGROUP BY query_hostname\nORDER BY query_count DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "hours": "24",
+        "limit": "100"
+      },
+      "category": "Operational"
+    },
+    {
+      "name": "dns_by_region",
+      "intent": "Show DNS query distribution by cloud region",
+      "patterns": [
+        "DNS queries by region",
+        "Regional DNS activity",
+        "Which regions have DNS traffic"
+      ],
+      "sql": "SELECT \n  cloud_region,\n  COUNT(*) as query_count,\n  COUNT(DISTINCT source_ip) as unique_clients,\n  COUNT(DISTINCT query_hostname) as unique_domains\nFROM dns_event\nWHERE time >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nGROUP BY cloud_region\nORDER BY query_count DESC",
+      "parameters": {
+        "hours": "24"
+      },
+      "category": "Operational"
+    },
+    {
+      "name": "new_domains_first_seen",
+      "intent": "Find domains queried for the first time recently",
+      "patterns": [
+        "New domains",
+        "First time domains",
+        "Recently seen domains"
+      ],
+      "sql": "WITH domain_history AS (\n  SELECT \n    query_hostname,\n    MIN(time) as first_seen,\n    COUNT(*) as total_queries\n  FROM dns_event\n  GROUP BY query_hostname\n)\nSELECT \n  query_hostname,\n  first_seen,\n  total_queries\nFROM domain_history\nWHERE first_seen >= DATEADD(hour, -{{hours}}, CURRENT_TIMESTAMP())\nORDER BY first_seen DESC\nLIMIT {{limit}}",
+      "parameters": {
+        "limit": "100",
+        "hours": "24"
+      },
+      "category": "Investigation"
+    }
+  ]
+}

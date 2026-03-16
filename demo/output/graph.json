@@ -1,0 +1,75 @@
+{
+  "nodes": [
+    {
+      "id": "entity_dns_event",
+      "type": "semantic_entity",
+      "label": "DNS Event",
+      "properties": {
+        "name": "dns_event",
+        "attribute_count": 10,
+        "source_event_classes": [
+          4003
+        ],
+        "description": "DNS queries and responses with threat detection capabilities"
+      },
+      "style": {
+        "shape": "rectangle",
+        "color": "#4a90d9",
+        "border_color": "#2c5aa0",
+        "border_width": 1.0,
+        "font_size": 12.0,
+        "font_color": "#000000",
+        "highlighted": false,
+        "opacity": 1.0
+      }
+    },
+    {
+      "id": "category_3",
+      "type": "ocsf_category",
+      "label": "Identity & Access Management",
+      "properties": {
+        "uid": 3,
+        "description": "IAM events",
+        "name": "iam"
+      },
+      "style": {
+        "shape": "hexagon",
+        "color": "#f5a623",
+        "border_color": "#c78c1c",
+        "border_width": 1.0,
+        "font_size": 12.0,
+        "font_color": "#000000",
+        "highlighted": false,
+        "opacity": 1.0
+      }
+    },
+    {
+      "id": "category_1",
+      "type": "ocsf_category",
+      "label": "System Activity",
+      "properties": {
+        "name": "system",
+        "uid": 1,
+        "description": "System events"
+      },
+      "style": {
+        "shape": "hexagon",
+        "color": "#f5a623",
+        "border_color": "#c78c1c",
+        "border_width": 1.0,
+        "font_size": 12.0,
+        "font_color": "#000000",
+        "highlighted": false,
+        "opacity": 1.0
+      }
+    }
+  ],
+  "edges": [],
+  "metadata": {
+    "view_mode": "interchange",
+    "generated_at": "1769145442",
+    "schema_version": "1.4.0",
+    "model_version": "1.0",
+    "layout": "hierarchical"
+  }
+}

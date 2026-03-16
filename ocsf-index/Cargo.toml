@@ -1,0 +1,32 @@
+[package]
+name = "ocsf-index"
+description = "Metadata management system for OCSF semantic layer - tracks table locations, lineage, partitions, and statistics"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+
+# Async runtime
+tokio.workspace = true
+
+# Error handling
+anyhow.workspace = true
+thiserror.workspace = true
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# SQLite backend
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Internal crates
+ocsf-semantic.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile = "3.10"

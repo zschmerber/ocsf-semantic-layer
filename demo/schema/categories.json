@@ -1,0 +1,14 @@
+{
+    "attributes": {
+        "iam": {
+            "uid": 3,
+            "caption": "Identity & Access Management",
+            "description": "IAM events"
+        },
+        "system": {
+            "uid": 1,
+            "caption": "System Activity",
+            "description": "System events"
+        }
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "name": "actor",
+    "caption": "Actor",
+    "description": "The actor object",
+    "attributes": {
+        "user": {
+            "type": "object_t",
+            "object_type": "user",
+            "caption": "User"
+        }
+    }
+}

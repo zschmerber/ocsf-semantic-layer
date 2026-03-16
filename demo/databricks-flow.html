@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Databricks Semantic Layer - Data Flow</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #0d1117; 
+            color: #c9d1d9; 
+            padding: 40px 20px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        h1 { color: #58a6ff; margin-bottom: 10px; font-size: 2.5rem; }
+        h2 { color: #7ee787; margin-top: 40px; margin-bottom: 20px; font-size: 1.8rem; }
+        .subtitle { color: #8b949e; font-size: 1.2rem; margin-bottom: 40px; }
+        .diagram-container { 
+            background: #161b22; 
+            border-radius: 12px; 
+            padding: 30px; 
+            margin: 30px 0; 
+            border: 1px solid #30363d;
+            overflow-x: auto;
+        }
+        .diagram-container .mermaid { 
+            display: flex; 
+            justify-content: center;
+            min-height: 400px;
+        }
+        .code-block {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #30363d;
+            overflow-x: auto;
+        }
+        .code-block pre {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #c9d1d9;
+        }
+        .code-block h4 {
+            color: #f0883e;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .comparison-box {
+            background: #161b22;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #30363d;
+        }
+        .comparison-box h3 {
+            color: #58a6ff;
+            margin-bottom: 15px;
+        }
+        .comparison-box.physical {
+            border-left: 4px solid #f85149;
+        }
+        .comparison-box.semantic {
+            border-left: 4px solid #7ee787;
+        }
+        .back-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #238636;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 10px 20px 0;
+        }
+        .back-link:hover {
+            background: #2ea043;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #161b22;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+        }
+        th {
+            background: #21262d;
+            color: #58a6ff;
+            font-weight: 600;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .highlight {
+            background: #21262d;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+            color: #79c0ff;
+        }
+        .info-box {
+            background: #161b22;
+            border-left: 4px solid #58a6ff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        .info-box h4 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔷 Databricks Delta Lake Architecture</h1>
+        <p class="subtitle">Bronze → Silver → Gold medallion architecture with semantic layer</p>
+        
+        <a href="/viz/" class="back-link">← Dashboard</a>
+        <a href="/dns-diagram.html" class="back-link">📐 Detailed Diagram</a>
+        <a href="/DATABRICKS-EXAMPLE.md" class="back-link">📄 Full Documentation</a>
+
+        <h2>📊 Complete Data Flow</h2>
+        
+        <div class="diagram-container">
+            <div class="mermaid">
+graph TB
+    subgraph "1. Ingestion Layer"
+        S3["S3 Bucket<br/>dns-logs/2024/01/23/<br/>ocsf-dns-*.json"]
+        STREAM["Auto Loader<br/>Streaming Ingestion"]
+    end
+    
+    subgraph "2. Bronze Layer (Delta Lake)"
+        BRONZE["bronze_ocsf_dns<br/>Delta Table<br/>Fully Flattened Schema"]
+        COLS1["query_hostname, query_type,<br/>src_endpoint_ip, src_endpoint_port,<br/>rcode, action, severity,<br/>cloud_provider, cloud_region,<br/>metadata_uid, time"]
+    end
+    
+    subgraph "3. Silver Layer (Enriched)"
+        SILVER["silver_ocsf_dns<br/>Delta Table<br/>Cleaned & Validated"]
+        ENRICH["+ Computed Fields<br/>+ Data Quality Checks<br/>+ Deduplication"]
+    end
+    
+    subgraph "4. Hot Path (Observables)"
+        OBS["gold_observables<br/>Delta Table<br/>ZORDER BY (type_id, value)"]
+        FAST["Fast IOC Matching<br/>Threat Intel Joins"]
+    end
+    
+    subgraph "5. Gold Layer (Semantic)"
+        VIEW["v_dns_event<br/>Business-Friendly View"]
+        SEMANTIC["query_hostname, source_ip,<br/>action, cloud_provider<br/>(Renamed for clarity)"]
+    end
+    
+    subgraph "6. Consumption Layer"
+        ANALYST["Security Analyst<br/>Natural Language SQL"]
+        METRICS["Pre-built Metrics<br/>NXDOMAIN rate, blocked rate"]
+        THREAT["Threat Hunting<br/>IOC matching"]
+    end
+    
+    S3 --> STREAM
+    STREAM -->|Parse & Flatten JSON| BRONZE
+    BRONZE --> COLS1
+    BRONZE -->|Clean & Validate| SILVER
+    SILVER --> ENRICH
+    SILVER -->|Extract Observables| OBS
+    OBS --> FAST
+    SILVER --> VIEW
+    VIEW --> SEMANTIC
+    VIEW --> ANALYST
+    VIEW --> METRICS
+    OBS --> THREAT
+    THREAT -->|Reverse Lookup| VIEW
+    
+    style S3 fill:#f0883e,stroke:#c78c1c,color:#fff
+    style BRONZE fill:#cd7f32,stroke:#8b5a00,color:#fff
+    style SILVER fill:#c0c0c0,stroke:#808080,color:#000
+    style OBS fill:#f0883e,stroke:#c78c1c,color:#fff
+    style VIEW fill:#ffd700,stroke:#b8860b,color:#000
+    style ANALYST fill:#58a6ff,stroke:#2c5aa0,color:#fff
+            </div>
+        </div>
+
+        <h2>🔄 Layer-by-Layer Breakdown</h2>
+
+        <div class="comparison">
+            <div class="comparison-box physical">
+                <h3>🥉 Bronze Layer (Flattened)</h3>
+                <p style="color: #8b949e; margin-bottom: 15px;">Direct JSON-to-columns mapping</p>
+                <div class="code-block">
+                    <pre>SELECT 
+  query_hostname,
+  src_endpoint_ip,
+  cloud_provider
+FROM bronze_ocsf_dns
+WHERE class_uid = 4003;</pre>
+                </div>
+                <p style="color: #cd7f32; font-size: 0.9rem; margin-top: 10px;">
+                    ⚠️ OCSF field names<br/>
+                    ⚠️ Requires schema knowledge<br/>
+                    ⚠️ Not optimized for queries
+                </p>
+            </div>
+
+            <div class="comparison-box semantic">
+                <h3>🥇 Gold Layer (Semantic)</h3>
+                <p style="color: #8b949e; margin-bottom: 15px;">Business-friendly names</p>
+                <div class="code-block">
+                    <pre>SELECT 
+  query_hostname,
+  source_ip,
+  cloud_provider
+FROM v_dns_event;</pre>
+                </div>
+                <p style="color: #ffd700; font-size: 0.9rem; margin-top: 10px;">
+                    ✓ Intuitive names<br/>
+                    ✓ Analyst-friendly<br/>
+                    ✓ Optimized & validated
+                </p>
+            </div>
+        </div>
+
+        <h2>📋 Sample Data at Each Layer</h2>
+
+        <h3 style="color: #f0883e; margin-top: 30px;">1. Raw DNS Log (S3 - JSON)</h3>
+        <div class="code-block">
+            <pre>{
+  "class_uid": 4003,
+  "class_name": "DNS Activity",
+  "query": {
+    "hostname": "ip-127-0-0-62.alert.firewall.canary.",
+    "type": "A"
+  },
+  "src_endpoint": {
+    "ip": "10.200.21.100",
+    "port": 15083
+  },
+  "cloud": {
+    "provider": "AWS",
+    "region": "us-east-1"
+  },
+  "action": "Allowed",
+  "rcode": "NoError",
+  "severity": "Informational",
+  "metadata": {
+    "uid": "dns-event-12345"
+  },
+  "time": 1706011200000
+}</pre>
+        </div>
+
+        <h3 style="color: #cd7f32; margin-top: 30px;">2. Bronze Table (Flattened Delta)</h3>
+        <p style="color: #8b949e; margin-bottom: 10px;">Table: <span class="highlight">bronze_ocsf_dns</span> - All JSON fields flattened to columns</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>metadata_uid</th>
+                    <th>class_uid</th>
+                    <th>query_hostname</th>
+                    <th>query_type</th>
+                    <th>src_endpoint_ip</th>
+                    <th>src_endpoint_port</th>
+                    <th>action</th>
+                    <th>rcode</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>dns-event-12345</td>
+                    <td>4003</td>
+                    <td>ip-127-0-0-62.alert...</td>
+                    <td>A</td>
+                    <td>10.200.21.100</td>
+                    <td>15083</td>
+                    <td>Allowed</td>
+                    <td>NoError</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="color: #c0c0c0; margin-top: 30px;">3. Silver Table (Cleaned & Enriched Delta)</h3>
+        <p style="color: #8b949e; margin-bottom: 10px;">Table: <span class="highlight">silver_ocsf_dns</span> - Validated, deduplicated, with computed fields</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>metadata_uid</th>
+                    <th>query_hostname</th>
+                    <th>src_endpoint_ip</th>
+                    <th>action</th>
+                    <th>is_suspicious_tld</th>
+                    <th>query_entropy</th>
+                    <th>is_dga_candidate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>dns-event-12345</td>
+                    <td>ip-127-0-0-62.alert...</td>
+                    <td>10.200.21.100</td>
+                    <td>Allowed</td>
+                    <td>true</td>
+                    <td>3.8</td>
+                    <td>false</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="color: #ffd700; margin-top: 30px;">4. Gold View (Semantic Layer)</h3>
+        <p style="color: #8b949e; margin-bottom: 10px;">View: <span class="highlight">v_dns_event</span> - Business-friendly column names</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>query_hostname</th>
+                    <th>query_type</th>
+                    <th>source_ip</th>
+                    <th>source_port</th>
+                    <th>action</th>
+                    <th>cloud_provider</th>
+                    <th>cloud_region</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ip-127-0-0-62.alert.firewall.canary.</td>
+                    <td>A</td>
+                    <td>10.200.21.100</td>
+                    <td>15083</td>
+                    <td>Allowed</td>
+                    <td>AWS</td>
+                    <td>us-east-1</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 style="color: #f0883e; margin-top: 30px;">5. Observables Table (Hot Path)</h3>
+        <p style="color: #8b949e; margin-bottom: 10px;">Table: <span class="highlight">gold_observables</span> - Optimized for IOC matching (ZORDER)</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>type_id</th>
+                    <th>type_name</th>
+                    <th>value</th>
+                    <th>event_uid</th>
+                    <th>source_table</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>Hostname</td>
+                    <td>ip-127-0-0-62.alert.firewall.canary.</td>
+                    <td>dns-event-12345</td>
+                    <td>silver_ocsf_dns</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>IP Address</td>
+                    <td>10.200.21.100</td>
+                    <td>dns-event-12345</td>
+                    <td>silver_ocsf_dns</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>🎯 Query Examples</h2>
+
+        <div class="code-block">
+            <h4>Example 1: Find Blocked DNS Queries</h4>
+            <pre>-- Semantic layer query (analyst-friendly)
+SELECT 
+    query_hostname,
+    source_ip,
+    cloud_region,
+    event_time
+FROM v_dns_event
+WHERE action = 'Blocked'
+  AND event_time >= CURRENT_DATE - INTERVAL 7 DAYS
+ORDER BY event_time DESC;</pre>
+        </div>
+
+        <div class="code-block">
+            <h4>Example 2: NXDOMAIN Rate (DGA Detection)</h4>
+            <pre>-- Pre-built metric for threat detection
+SELECT 
+    source_ip,
+    COUNT(*) as total_queries,
+    SUM(CASE WHEN response_code = 'NXDOMAIN' THEN 1 ELSE 0 END) as nxdomain_count,
+    AVG(CASE WHEN response_code = 'NXDOMAIN' THEN 1.0 ELSE 0.0 END) as nxdomain_rate
+FROM v_dns_event
+WHERE event_time >= CURRENT_DATE - INTERVAL 1 DAYS
+GROUP BY source_ip
+HAVING nxdomain_rate > 0.3  -- High rate indicates DGA
+ORDER BY nxdomain_rate DESC;</pre>
+        </div>
+
+        <div class="code-block">
+            <h4>Example 3: Threat Intel Matching (Hot Path)</h4>
+            <pre>-- Fast IOC matching using observables table
+SELECT 
+    o.value as malicious_domain,
+    ti.threat_type,
+    ti.confidence,
+    e.source_ip,
+    e.event_time
+FROM ocsf_observables o
+INNER JOIN threat_intel_domains ti 
+    ON o.value = ti.domain
+INNER JOIN v_dns_event e 
+    ON o.event_uid = e.metadata_uid
+WHERE o.type_id = 1  -- Hostname
+  AND o.event_time >= CURRENT_DATE - INTERVAL 1 DAYS
+ORDER BY ti.confidence DESC;</pre>
+        </div>
+
+        <h2>🔗 Attribute Mapping Reference</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Gold (Semantic)</th>
+                    <th>Bronze (OCSF)</th>
+                    <th>Synonyms</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="highlight">query_hostname</span></td>
+                    <td>query_hostname</td>
+                    <td>domain, fqdn, hostname</td>
+                    <td>string</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">query_type</span></td>
+                    <td>query_type</td>
+                    <td>record_type, dns_type</td>
+                    <td>string</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">source_ip</span></td>
+                    <td>src_endpoint_ip</td>
+                    <td>client_ip, src_ip</td>
+                    <td>string</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">source_port</span></td>
+                    <td>src_endpoint_port</td>
+                    <td>client_port, src_port</td>
+                    <td>integer</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">response_code</span></td>
+                    <td>rcode</td>
+                    <td>rcode, dns_response</td>
+                    <td>string</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">action</span></td>
+                    <td>action</td>
+                    <td>disposition, verdict</td>
+                    <td>string</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">cloud_provider</span></td>
+                    <td>cloud_provider</td>
+                    <td>csp, provider</td>
+                    <td>string</td>
+                </tr>
+                <tr>
+                    <td><span class="highlight">cloud_region</span></td>
+                    <td>cloud_region</td>
+                    <td>region, datacenter</td>
+                    <td>string</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="info-box">
+            <h4>💡 Key Benefits of Delta Lake Architecture</h4>
+            <p><strong>For Analysts:</strong> Query using business terms without knowing OCSF schema structure</p>
+            <p style="margin-top: 10px;"><strong>For Engineers:</strong> Fully structured Delta tables, no JSON parsing overhead, ACID transactions</p>
+            <p style="margin-top: 10px;"><strong>For Threat Hunters:</strong> Fast IOC matching with ZORDER optimization, time travel for investigations</p>
+            <p style="margin-top: 10px;"><strong>For Data Quality:</strong> Schema enforcement, validation rules, deduplication in Silver layer</p>
+        </div>
+
+        <h2>📁 Generated Files</h2>
+        <p style="color: #8b949e; margin-bottom: 20px;">All Databricks artifacts are in: <span class="highlight">demo/output/databricks/</span></p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>views/v_dns_event.sql</td>
+                    <td>Semantic view definition</td>
+                </tr>
+                <tr>
+                    <td>tables/all_tables.sql</td>
+                    <td>Physical table schemas</td>
+                </tr>
+                <tr>
+                    <td>observables/observables_table.sql</td>
+                    <td>Hot path table for IOC matching</td>
+                </tr>
+                <tr>
+                    <td>etl/extract_observables.sql</td>
+                    <td>Observable extraction ETL</td>
+                </tr>
+                <tr>
+                    <td>dbt/semantic_manifest.yml</td>
+                    <td>dbt semantic layer config</td>
+                </tr>
+                <tr>
+                    <td>cubejs/DnsEvent.js</td>
+                    <td>Cube.js schema for BI tools</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <a href="/viz/" class="back-link">← Back to Dashboard</a>
+        <a href="/dns-diagram.html" class="back-link">📐 Detailed Diagram</a>
+        <a href="/DATABRICKS-EXAMPLE.md" class="back-link">📄 Full Documentation</a>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#58a6ff',
+                primaryTextColor: '#c9d1d9',
+                primaryBorderColor: '#30363d',
+                lineColor: '#6e7681',
+                secondaryColor: '#161b22',
+                tertiaryColor: '#21262d',
+                background: '#0d1117',
+                mainBkg: '#161b22',
+                nodeBorder: '#30363d'
+            }
+        });
+    </script>
+</body>
+</html>

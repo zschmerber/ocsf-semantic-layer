@@ -1,0 +1,255 @@
+/**
+ * Styles for the EtlDashboard component.
+ *
+ * Dashboard container with header (health indicator),
+ * config hint banner, main content area, and catalog selector modal.
+ */
+
+/* ============================================
+   Dashboard Layout
+   ============================================ */
+
+.etl-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+/* Header with title and health indicator */
+.etl-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+}
+
+.etl-dashboard-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+/* Main content area */
+.etl-dashboard-content {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ============================================
+   Health Indicator
+   ============================================ */
+
+.etl-health-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #586069);
+}
+
+.health-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-connected {
+  background: #2ea043;
+  box-shadow: 0 0 4px rgba(46, 160, 67, 0.4);
+}
+
+.health-disconnected {
+  background: #cf222e;
+  box-shadow: 0 0 4px rgba(207, 34, 46, 0.4);
+}
+
+.health-label {
+  font-weight: 500;
+}
+
+/* ============================================
+   Configuration Hint Banner
+   ============================================ */
+
+.etl-config-banner {
+  padding: 0.625rem 0.875rem;
+  background: rgba(210, 153, 34, 0.1);
+  color: #9a6700;
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.etl-config-banner code {
+  padding: 0.125rem 0.375rem;
+  background: rgba(210, 153, 34, 0.15);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* ============================================
+   Catalog Selector Modal
+   ============================================ */
+
+.catalog-selector-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.catalog-selector-modal {
+  width: 90%;
+  max-width: 480px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.catalog-selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+}
+
+.catalog-selector-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+.btn-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.25rem;
+  color: var(--text-secondary, #586069);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-close:hover {
+  background: var(--bg-hover, #f0f3f6);
+}
+
+/* Catalog selector states */
+.catalog-selector-error {
+  margin: 0.75rem 1rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(215, 58, 73, 0.1);
+  color: #cb2431;
+  border: 1px solid rgba(215, 58, 73, 0.3);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+.catalog-selector-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--text-muted, #6a737d);
+  font-size: 0.875rem;
+}
+
+.catalog-selector-loading .spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color, #e1e4e8);
+  border-top-color: var(--accent-fg, #0969da);
+  border-radius: 50%;
+  animation: catalog-spin 0.6s linear infinite;
+}
+
+@keyframes catalog-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.catalog-selector-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted, #6a737d);
+  font-size: 0.875rem;
+}
+
+/* Catalog entry list */
+.catalog-selector-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.catalog-selector-item {
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+}
+
+.catalog-selector-item:last-child {
+  border-bottom: none;
+}
+
+.catalog-selector-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+  gap: 0.75rem;
+}
+
+.catalog-selector-btn:hover {
+  background: var(--bg-hover, #f0f3f6);
+}
+
+.catalog-selector-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.catalog-entry-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary, #24292e);
+}
+
+.catalog-entry-version {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #586069);
+  white-space: nowrap;
+}

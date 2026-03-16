@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 58c201c1fcdc406726b52cf0f4ea54ec75381086d3d98dc8484bfc028c4d9b14 # shrinks to event_uid = "00000aaa-aaa0-00a0-0aaa-a0aaaaaaa00a", event_class_uid = 1000, event_time = "2020-01-01T00:00:00Z", observables_data = [(2, "IP Address", "dst_endpoint.ip", None), (2, "IP Address", "dst_endpoint.ip", None)]

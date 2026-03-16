@@ -1,0 +1,23 @@
+name: dns_activity_plugin
+ocsf_version: 1.3.0
+entities:
+- name: dns_activity
+  description: 'Semantic entity for OCSF DNS Activity (UID: 4003)'
+  ocsf_class_uid: 4003
+  fields:
+  - name: query_hostname
+    source_field: hostname
+    ocsf_path: query.hostname
+  - name: src_endpoint_ip
+    source_field: src_ip
+    ocsf_path: src_endpoint.ip
+  - name: dst_endpoint_ip
+    source_field: dst_ip
+    ocsf_path: dst_endpoint.ip
+metrics:
+- name: dns_activity_count
+  expression: COUNT(*) FROM dns_activity
+  description: Total count of DNS Activity events
+- name: dns_activity_rate_per_minute
+  expression: COUNT(*) / DATEDIFF(minute, MIN(time), MAX(time)) FROM dns_activity
+  description: Rate of DNS Activity events per minute

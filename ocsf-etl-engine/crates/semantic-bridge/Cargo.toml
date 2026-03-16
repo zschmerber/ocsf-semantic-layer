@@ -1,0 +1,23 @@
+[package]
+name = "semantic-bridge"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+etl-core = { path = "../etl-core" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+reqwest = { version = "0.12", features = ["json"], optional = true }
+async-trait = "0.1"
+# ocsf-catalog models accessed via HTTP, not direct dep
+
+[features]
+default = ["catalog"]
+catalog = ["reqwest"]
+
+[dev-dependencies]
+proptest = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

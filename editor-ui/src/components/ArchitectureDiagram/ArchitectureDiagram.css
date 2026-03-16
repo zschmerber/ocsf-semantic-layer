@@ -1,0 +1,418 @@
+.architecture-diagram {
+  padding: 1.5rem;
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+}
+
+.architecture-header {
+  margin-bottom: 1.5rem;
+}
+
+.architecture-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+}
+
+.architecture-subtitle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.architecture-view-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.view-option {
+  flex: 1;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.view-option:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-hover);
+}
+
+.view-option.active {
+  border-color: var(--primary-color);
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.view-option-label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.view-option-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.architecture-content {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+}
+
+.diagram-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.diagram-container.full-arch {
+  max-width: 100%;
+}
+
+.architecture-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.architecture-svg {
+  width: 100%;
+  height: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* SVG Text Styles */
+.diagram-title {
+  font-size: 18px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.layer-label {
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--text-secondary);
+}
+
+.component-text {
+  font-size: 11px;
+  fill: var(--text-primary);
+}
+
+.box-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.box-sublabel {
+  font-size: 10px;
+  fill: var(--text-secondary);
+}
+
+.flow-label {
+  font-size: 10px;
+  fill: var(--text-secondary);
+}
+
+.central-label {
+  font-size: 14px;
+  font-weight: 600;
+  fill: white;
+}
+
+.central-sublabel {
+  font-size: 11px;
+  fill: rgba(255, 255, 255, 0.8);
+}
+
+.store-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.store-field {
+  font-size: 10px;
+  fill: var(--text-secondary);
+}
+
+.inner-label {
+  font-size: 10px;
+  fill: var(--text-primary);
+}
+
+.backend-label {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.backend-sublabel {
+  font-size: 10px;
+  fill: var(--text-secondary);
+}
+
+/* SVG Box Styles */
+.layer-box {
+  fill: var(--bg-secondary);
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.layer-box.presentation {
+  fill: #f0f4ff;
+}
+
+.layer-box.api {
+  fill: #f0fff4;
+}
+
+.layer-box.core {
+  fill: #fff7f0;
+}
+
+.layer-box.storage {
+  fill: #f5f0ff;
+}
+
+.component-box {
+  fill: white;
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.component-box.highlight {
+  fill: #667eea;
+  stroke: #5a67d8;
+}
+
+.component-box.highlight + text {
+  fill: white;
+}
+
+.component-box.storage-box {
+  fill: #f8f9fa;
+}
+
+.source-box {
+  fill: #e3f2fd;
+  stroke: #90caf9;
+  stroke-width: 1.5;
+}
+
+.transform-box {
+  fill: #fff3e0;
+  stroke: #ffb74d;
+  stroke-width: 1.5;
+}
+
+.index-box {
+  fill: #e8f5e9;
+  stroke: #81c784;
+  stroke-width: 2;
+}
+
+.ocsf-box {
+  fill: #f3e5f5;
+  stroke: #ba68c8;
+  stroke-width: 1.5;
+}
+
+.analytics-box {
+  fill: #e0f7fa;
+  stroke: #4dd0e1;
+  stroke-width: 1.5;
+}
+
+.inner-box {
+  fill: white;
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.central-box {
+  fill: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  fill: #667eea;
+  stroke: #5a67d8;
+  stroke-width: 2;
+}
+
+.store-box {
+  fill: white;
+  stroke: var(--border-color);
+  stroke-width: 1.5;
+}
+
+.store-box.registry {
+  stroke: #4caf50;
+}
+
+.store-box.lineage {
+  stroke: #2196f3;
+}
+
+.store-box.field {
+  stroke: #ff9800;
+}
+
+.store-box.stats {
+  stroke: #9c27b0;
+}
+
+.backend-box {
+  fill: #f5f5f5;
+  stroke: #9e9e9e;
+  stroke-width: 1.5;
+  stroke-dasharray: 4;
+}
+
+/* Arrows */
+.arrows line {
+  stroke: #666;
+  stroke-width: 2;
+}
+
+/* Legend */
+.diagram-legend {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.diagram-legend h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.diagram-legend ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.diagram-legend li {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.diagram-legend li strong {
+  color: var(--text-primary);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .layer-box.presentation {
+    fill: rgba(102, 126, 234, 0.15);
+  }
+
+  .layer-box.api {
+    fill: rgba(72, 187, 120, 0.15);
+  }
+
+  .layer-box.core {
+    fill: rgba(237, 137, 54, 0.15);
+  }
+
+  .layer-box.storage {
+    fill: rgba(159, 122, 234, 0.15);
+  }
+
+  .component-box {
+    fill: var(--bg-primary);
+  }
+
+  .source-box {
+    fill: rgba(33, 150, 243, 0.2);
+  }
+
+  .transform-box {
+    fill: rgba(255, 152, 0, 0.2);
+  }
+
+  .index-box {
+    fill: rgba(76, 175, 80, 0.2);
+  }
+
+  .ocsf-box {
+    fill: rgba(156, 39, 176, 0.2);
+  }
+
+  .analytics-box {
+    fill: rgba(0, 188, 212, 0.2);
+  }
+
+  .inner-box {
+    fill: var(--bg-secondary);
+  }
+
+  .store-box {
+    fill: var(--bg-primary);
+  }
+
+  .backend-box {
+    fill: var(--bg-secondary);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .architecture-view-selector {
+    flex-direction: column;
+  }
+
+  .view-option {
+    padding: 0.75rem;
+  }
+}
+
+
+.architecture-image-container {
+  position: relative;
+  width: 100%;
+}
+
+.architecture-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+}
+
+.placeholder-content {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.placeholder-hint {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.placeholder-hint code {
+  background: var(--bg-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}

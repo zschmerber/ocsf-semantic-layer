@@ -1,0 +1,24 @@
+[workspace]
+members = [
+    "crates/etl-core",
+    "crates/codegen-adapter",
+    "crates/semantic-bridge",
+    "crates/warehouse-gen",
+    "crates/etl-server",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+anyhow = "1"
+tokio = { version = "1", features = ["full"] }
+proptest = "1"

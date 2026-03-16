@@ -1,0 +1,122 @@
+version: "1.0"
+ocsf_version: "1.6.0"
+name: dns-analytics
+description: Semantic layer for DNS activity analytics
+
+entities:
+  - name: dns_event
+    caption: DNS Event
+    description: DNS queries and responses
+    source_event_classes:
+      - 4003
+    covers_observables:
+      - 1  # Hostname
+      - 2  # IP Address
+    attributes:
+      - name: query_hostname
+        caption: Query Hostname
+        type: string
+        ocsf_mapping:
+          field: query.hostname
+        is_dimension: true
+      - name: query_type
+        caption: Query Type
+        type: string
+        ocsf_mapping:
+          field: query.type
+        is_dimension: true
+      - name: source_ip
+        caption: Source IP
+        type: string
+        ocsf_mapping:
+          field: src_endpoint.ip
+        is_dimension: true
+      - name: source_port
+        caption: Source Port
+        type: integer
+        ocsf_mapping:
+          field: src_endpoint.port
+        is_dimension: false
+      - name: response_code
+        caption: Response Code
+        type: string
+        ocsf_mapping:
+          field: rcode
+        is_dimension: true
+      - name: action
+        caption: Action
+        type: string
+        ocsf_mapping:
+          field: action
+        is_dimension: true
+      - name: severity
+        caption: Severity
+        type: string
+        ocsf_mapping:
+          field: severity
+        is_dimension: true
+      - name: cloud_provider
+        caption: Cloud Provider
+        type: string
+        ocsf_mapping:
+          field: cloud.provider
+        is_dimension: true
+      - name: cloud_region
+        caption: Cloud Region
+        type: string
+        ocsf_mapping:
+          field: cloud.region
+        is_dimension: true
+      - name: event_time
+        caption: Event Time
+        type: timestamp
+        ocsf_mapping:
+          field: time
+
+metrics:
+  - name: dns_query_count
+    caption: DNS Query Count
+    description: Total number of DNS queries
+    aggregation: count
+    measure:
+      field: metadata.uid
+    dimensions:
+      - query_hostname
+      - source_ip
+      - action
+    time_granularities:
+      - hour
+      - day
+
+  - name: blocked_dns_rate
+    caption: Blocked DNS Rate
+    description: Percentage of blocked DNS queries
+    aggregation: avg
+    measure:
+      expression: "CASE WHEN action != 'Allowed' THEN 1.0 ELSE 0.0 END"
+    dimensions:
+      - source_ip
+      - cloud_region
+    time_granularities:
+      - hour
+      - day
+
+  - name: dns_by_severity
+    caption: DNS Events by Severity
+    description: Count of DNS events grouped by severity
+    aggregation: count
+    measure:
+      field: metadata.uid
+    dimensions:
+      - severity
+      - action
+    time_granularities:
+      - hour
+      - day
+
+observable_config:
+  extract_to_table: true
+  table_name: dns_observables
+  include_types:
+    - 1  # Hostname
+    - 2  # IP Address

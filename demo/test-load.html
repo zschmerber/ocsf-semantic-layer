@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Data Loading</title></head>
+<body>
+<h1>Testing Data Load</h1>
+<pre id="output"></pre>
+<script>
+async function test() {
+    const output = document.getElementById('output');
+    try {
+        output.textContent += 'Loading graph.json...\n';
+        const graph = await (await fetch('./output/graph.json')).json();
+        output.textContent += `✓ Graph loaded: ${graph.nodes.length} nodes, ${graph.edges.length} edges\n\n`;
+        
+        output.textContent += 'Loading semantic-model.yaml...\n';
+        const model = await (await fetch('./semantic-model.yaml')).text();
+        output.textContent += `✓ Model loaded: ${model.length} bytes\n\n`;
+        
+        output.textContent += 'Loading test-dns-event.json...\n';
+        const event = await (await fetch('./test-dns-event.json')).json();
+        output.textContent += `✓ DNS Event loaded: ${event.class_name}\n`;
+        output.textContent += `  Query: ${event.query.hostname}\n`;
+        output.textContent += `  Source IP: ${event.src_endpoint.ip}\n`;
+        output.textContent += `  Observables: ${event.observables.length}\n\n`;
+        
+        output.textContent += 'Loading artifacts...\n';
+        const paths = ['dbt/semantic_manifest.yml', 'cubejs/DnsEvent.js', 'views/v_dns_event.sql'];
+        for (const path of paths) {
+            try {
+                const res = await fetch('./output/' + path);
+                if (res.ok) {
+                    const text = await res.text();
+                    output.textContent += `✓ ${path}: ${text.length} bytes\n`;
+                } else {
+                    output.textContent += `✗ ${path}: ${res.status}\n`;
+                }
+            } catch (e) {
+                output.textContent += `✗ ${path}: ${e.message}\n`;
+            }
+        }
+        
+        output.textContent += '\n✅ All data loaded successfully!\n';
+        output.textContent += '\nNow open http://localhost:8888/viz/ to view the dashboard\n';
+    } catch (e) {
+        output.textContent += `\n❌ Error: ${e.message}\n${e.stack}`;
+    }
+}
+test();
+</script>
+</body>
+</html>

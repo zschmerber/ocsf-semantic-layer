@@ -1,0 +1,286 @@
+version: "1.0"
+ocsf_version: "1.6.0"
+name: dns-analytics-enhanced
+description: Enhanced semantic layer for DNS activity analytics with LLM-friendly metadata
+
+entities:
+  - name: dns_event
+    caption: DNS Event
+    description: DNS queries and responses with threat detection capabilities
+    source_event_classes:
+      - 4003
+    covers_observables:
+      - 1  # Hostname
+      - 2  # IP Address
+    attributes:
+      - name: query_hostname
+        caption: Query Hostname
+        type: string
+        description: The fully qualified domain name being queried
+        security_context: "Critical for detecting DGA domains, DNS tunneling, and C2 beaconing. Check for entropy, length, and character patterns."
+        synonyms:
+          - domain
+          - fqdn
+          - hostname
+          - queried_domain
+        sample_values:
+          - example.com
+          - mail.google.com
+          - api.github.com
+        value_pattern: "^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+        ocsf_mapping:
+          field: query.hostname
+        is_dimension: true
+        is_observable: true
+        threat_relevance:
+          use_cases:
+            - DGA detection
+            - DNS tunneling
+            - C2 beaconing
+            - Threat intelligence matching
+          mitre_techniques:
+            - T1071.004  # Application Layer Protocol: DNS
+            - T1568.002  # Dynamic Resolution: Domain Generation Algorithms
+      
+      - name: query_type
+        caption: Query Type
+        type: string
+        description: DNS record type being queried
+        security_context: "TXT and NULL records are commonly abused for DNS tunneling. AAAA queries may indicate IPv6 C2 channels."
+        synonyms:
+          - record_type
+          - dns_type
+          - qtype
+        sample_values:
+          - A
+          - AAAA
+          - CNAME
+          - TXT
+          - MX
+        ocsf_mapping:
+          field: query.type
+        is_dimension: true
+        threat_relevance:
+          use_cases:
+            - DNS tunneling detection
+            - Data exfiltration
+          mitre_techniques:
+            - T1048.003  # Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted/Obfuscated Non-C2 Protocol
+      
+      - name: source_ip
+        caption: Source IP
+        type: string
+        description: IP address of the client making the DNS query
+        security_context: "Track query patterns per source IP to detect compromised hosts, DGA activity, and scanning behavior."
+        synonyms:
+          - client_ip
+          - src_ip
+          - source_address
+        sample_values:
+          - 10.0.1.100
+          - 192.168.1.50
+          - 172.16.0.25
+        value_pattern: "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"
+        ocsf_mapping:
+          field: src_endpoint.ip
+        is_dimension: true
+        is_observable: true
+        threat_relevance:
+          use_cases:
+            - Compromised host detection
+            - Lateral movement tracking
+          mitre_techniques:
+            - T1071  # Application Layer Protocol
+      
+      - name: source_port
+        caption: Source Port
+        type: integer
+        description: Source port number of the DNS query
+        synonyms:
+          - client_port
+          - src_port
+        sample_values:
+          - "53"
+          - "5353"
+          - "8600"
+        ocsf_mapping:
+          field: src_endpoint.port
+        is_dimension: false
+      
+      - name: response_code
+        caption: Response Code
+        type: string
+        description: DNS response code (NOERROR, NXDOMAIN, SERVFAIL, etc.)
+        security_context: "High NXDOMAIN rates indicate DGA activity. SERVFAIL may indicate DNS infrastructure issues or attacks."
+        synonyms:
+          - rcode
+          - dns_response
+          - response_status
+        sample_values:
+          - NOERROR
+          - NXDOMAIN
+          - SERVFAIL
+          - REFUSED
+        ocsf_mapping:
+          field: rcode
+        is_dimension: true
+        threat_relevance:
+          use_cases:
+            - DGA detection
+            - DNS infrastructure monitoring
+          mitre_techniques:
+            - T1568.002  # Dynamic Resolution: Domain Generation Algorithms
+      
+      - name: action
+        caption: Action
+        type: string
+        description: Action taken on the DNS query (Allowed, Blocked, etc.)
+        security_context: "Blocked queries indicate policy enforcement or threat prevention. Track blocked domains for IOC analysis."
+        synonyms:
+          - disposition
+          - verdict
+          - dns_action
+        sample_values:
+          - Allowed
+          - Blocked
+          - Dropped
+        ocsf_mapping:
+          field: action
+        is_dimension: true
+        threat_relevance:
+          use_cases:
+            - Policy enforcement monitoring
+            - Threat prevention effectiveness
+      
+      - name: severity
+        caption: Severity
+        type: string
+        description: Event severity level
+        synonyms:
+          - severity_level
+          - priority
+        sample_values:
+          - Low
+          - Medium
+          - High
+          - Critical
+        ocsf_mapping:
+          field: severity
+        is_dimension: true
+      
+      - name: cloud_provider
+        caption: Cloud Provider
+        type: string
+        description: Cloud service provider hosting the DNS infrastructure
+        synonyms:
+          - csp
+          - provider
+        sample_values:
+          - AWS
+          - Azure
+          - GCP
+        ocsf_mapping:
+          field: cloud.provider
+        is_dimension: true
+      
+      - name: cloud_region
+        caption: Cloud Region
+        type: string
+        description: Cloud region where the DNS query originated
+        synonyms:
+          - region
+          - datacenter
+        sample_values:
+          - us-east-1
+          - eu-west-1
+          - ap-southeast-2
+        ocsf_mapping:
+          field: cloud.region
+        is_dimension: true
+      
+      - name: event_time
+        caption: Event Time
+        type: timestamp
+        description: Timestamp when the DNS query occurred
+        synonyms:
+          - timestamp
+          - time
+          - query_time
+        ocsf_mapping:
+          field: time
+
+    relationships:
+      - name: domain_threat_intel
+        target_entity: threat_intel_domains
+        relationship_type: referenced-in
+        cardinality: many-to-one
+        join_condition: "dns_event.query_hostname = threat_intel_domains.domain"
+        description: "Match DNS queries against known malicious domains"
+      
+      - name: ip_threat_intel
+        target_entity: threat_intel_ips
+        relationship_type: referenced-in
+        cardinality: many-to-one
+        join_condition: "dns_event.source_ip = threat_intel_ips.ip_address"
+        description: "Match source IPs against known malicious IPs"
+
+metrics:
+  - name: dns_query_count
+    caption: DNS Query Count
+    description: Total number of DNS queries
+    aggregation: count
+    measure:
+      field: metadata.uid
+    dimensions:
+      - query_hostname
+      - source_ip
+      - action
+    time_granularities:
+      - hour
+      - day
+
+  - name: blocked_dns_rate
+    caption: Blocked DNS Rate
+    description: Percentage of blocked DNS queries
+    aggregation: avg
+    measure:
+      expression: "CASE WHEN action != 'Allowed' THEN 1.0 ELSE 0.0 END"
+    dimensions:
+      - source_ip
+      - cloud_region
+    time_granularities:
+      - hour
+      - day
+
+  - name: dns_by_severity
+    caption: DNS Events by Severity
+    description: Count of DNS events grouped by severity
+    aggregation: count
+    measure:
+      field: metadata.uid
+    dimensions:
+      - severity
+      - action
+    time_granularities:
+      - hour
+      - day
+
+  - name: nxdomain_rate
+    caption: NXDOMAIN Rate
+    description: Percentage of DNS queries resulting in NXDOMAIN (potential DGA indicator)
+    aggregation: avg
+    measure:
+      expression: "CASE WHEN response_code = 'NXDOMAIN' THEN 1.0 ELSE 0.0 END"
+    dimensions:
+      - source_ip
+      - cloud_region
+    time_granularities:
+      - hour
+      - day
+
+observable_config:
+  extract_to_table: true
+  table_name: dns_observables
+  include_types:
+    - 1  # Hostname
+    - 2  # IP Address

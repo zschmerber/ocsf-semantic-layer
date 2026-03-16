@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 9f4313707def04646a723e11f5e35c1079b7723ea9fa36e4634052fb7145406f # shrinks to schema = OCSFSchema { version: "1.0.0", categories: {}, event_classes: {}, objects: {"a": OCSFObject { name: "a", caption: "a", description: "", attributes: {}, extends: None, observables: [ObservableDefinition { type_id: 1, type_name: "a", definition_type: ByEventClass, source_path: None, source_event_class: None, description: "" }] }}, attributes: {}, observables: [] }

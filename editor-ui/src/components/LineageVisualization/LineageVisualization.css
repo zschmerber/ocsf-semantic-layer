@@ -1,0 +1,556 @@
+/**
+ * Styles for the LineageVisualization component.
+ * 
+ * Follows the existing editor-ui styling patterns with:
+ * - CSS custom properties for theming
+ * - Consistent spacing and typography
+ * - Responsive layout
+ * 
+ * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8
+ */
+
+/* ============================================
+   Container Styles
+   ============================================ */
+
+.lineage-visualization {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ============================================
+   Header Styles
+   ============================================ */
+
+.lineage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary, #f6f8fa);
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.lineage-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+.lineage-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lineage-filter-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary, #24292e);
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23586069' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  min-width: 150px;
+}
+
+.lineage-filter-select:hover {
+  border-color: var(--border-hover, #d1d5da);
+}
+
+.lineage-filter-select:focus {
+  outline: none;
+  border-color: var(--focus-border, #0366d6);
+  box-shadow: 0 0 0 3px var(--focus-shadow, rgba(3, 102, 214, 0.1));
+}
+
+.clear-filter-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary, #586069);
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-filter-btn:hover {
+  color: var(--text-primary, #24292e);
+  background: var(--bg-secondary, #f6f8fa);
+  border-color: var(--border-hover, #d1d5da);
+}
+
+/* ============================================
+   Graph Container Styles
+   ============================================ */
+
+.lineage-graph {
+  display: flex;
+  flex: 1;
+  position: relative;
+  padding: 1.5rem;
+  overflow: auto;
+  min-height: 300px;
+}
+
+/* ============================================
+   Column Styles
+   ============================================ */
+
+.lineage-column {
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  min-width: 200px;
+  flex-shrink: 0;
+}
+
+.lineage-column h4 {
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary, #586069);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-color, #e1e4e8);
+}
+
+.lineage-column.sources h4 {
+  border-bottom-color: var(--source-color, #6f42c1);
+}
+
+.lineage-column.targets h4 {
+  border-bottom-color: var(--target-color, #0366d6);
+}
+
+.node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.no-nodes {
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-tertiary, #6a737d);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ============================================
+   Node Styles
+   ============================================ */
+
+.lineage-node {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lineage-node:hover {
+  border-color: var(--border-hover, #d1d5da);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.lineage-node:focus {
+  outline: none;
+  border-color: var(--focus-border, #0366d6);
+  box-shadow: 0 0 0 3px var(--focus-shadow, rgba(3, 102, 214, 0.1));
+}
+
+.lineage-node.selected {
+  border-color: var(--focus-border, #0366d6);
+  background: var(--selected-bg, #f1f8ff);
+  box-shadow: 0 0 0 2px var(--focus-shadow, rgba(3, 102, 214, 0.2));
+}
+
+.lineage-node.source {
+  border-left: 3px solid var(--source-color, #6f42c1);
+}
+
+.lineage-node.source.selected {
+  border-left-color: var(--source-color, #6f42c1);
+  background: var(--source-selected-bg, #f5f0ff);
+}
+
+.lineage-node.target {
+  border-left: 3px solid var(--target-color, #0366d6);
+}
+
+.lineage-node.target.selected {
+  border-left-color: var(--target-color, #0366d6);
+  background: var(--target-selected-bg, #f1f8ff);
+}
+
+.node-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.node-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.node-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-system,
+.node-class {
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #6a737d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================
+   Edge Canvas Styles
+   ============================================ */
+
+.lineage-edges {
+  flex: 1;
+  min-width: 150px;
+  position: relative;
+}
+
+.edge-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.lineage-edge-group {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.edge-path {
+  stroke: var(--edge-color, #959da5);
+  stroke-width: 2;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.lineage-edge-group:hover .edge-path {
+  stroke: var(--edge-hover-color, #586069);
+  stroke-width: 3;
+}
+
+.lineage-edge-group.selected .edge-path {
+  stroke: var(--edge-selected-color, #0366d6);
+  stroke-width: 3;
+}
+
+.edge-hitbox {
+  cursor: pointer;
+}
+
+.edge-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  fill: var(--text-secondary, #586069);
+  background: var(--bg-primary, #ffffff);
+  pointer-events: none;
+}
+
+.lineage-edge-group:hover .edge-label {
+  fill: var(--text-primary, #24292e);
+}
+
+.lineage-edge-group.selected .edge-label {
+  fill: var(--edge-selected-color, #0366d6);
+  font-weight: 600;
+}
+
+/* ============================================
+   Loading State Styles
+   ============================================ */
+
+.lineage-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: var(--text-secondary, #586069);
+  font-size: 0.875rem;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e1e4e8);
+  border-top-color: var(--focus-border, #0366d6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================
+   Error State Styles
+   ============================================ */
+
+.lineage-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3rem;
+  color: var(--error-text, #d73a49);
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 2rem;
+}
+
+.error-detail {
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #6a737d);
+  max-width: 300px;
+}
+
+/* ============================================
+   Empty State Styles
+   ============================================ */
+
+.lineage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+.empty-description {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #586069);
+  max-width: 300px;
+}
+
+/* ============================================
+   Edge Detail Panel Styles
+   ============================================ */
+
+.edge-detail-panel {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 280px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  overflow: hidden;
+}
+
+.edge-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary, #f6f8fa);
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+}
+
+.edge-detail-header h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 1.25rem;
+  color: var(--text-tertiary, #6a737d);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  color: var(--text-primary, #24292e);
+  background: var(--bg-tertiary, #eaecef);
+}
+
+.edge-detail-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary, #586069);
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 0.8125rem;
+  color: var(--text-primary, #24292e);
+  text-align: right;
+  word-break: break-word;
+}
+
+.edge-detail-footer {
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary, #f6f8fa);
+  border-top: 1px solid var(--border-color, #e1e4e8);
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #6a737d);
+  font-style: italic;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+  .lineage-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .lineage-controls {
+    width: 100%;
+  }
+  
+  .lineage-filter-select {
+    flex: 1;
+  }
+  
+  .lineage-graph {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .lineage-column {
+    width: 100%;
+  }
+  
+  .lineage-edges {
+    min-height: 100px;
+    order: 1;
+  }
+  
+  .lineage-column.sources {
+    order: 0;
+  }
+  
+  .lineage-column.targets {
+    order: 2;
+  }
+  
+  .edge-detail-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+  }
+}
+
+/* ============================================
+   Dark Mode Support
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .lineage-visualization {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --text-primary: #c9d1d9;
+    --text-secondary: #8b949e;
+    --text-tertiary: #6e7681;
+    --border-color: #30363d;
+    --border-hover: #484f58;
+    --focus-border: #58a6ff;
+    --focus-shadow: rgba(88, 166, 255, 0.2);
+    --source-color: #a371f7;
+    --target-color: #58a6ff;
+    --edge-color: #484f58;
+    --edge-hover-color: #8b949e;
+    --edge-selected-color: #58a6ff;
+    --selected-bg: #161b22;
+    --source-selected-bg: #1c1c3a;
+    --target-selected-bg: #0d1d31;
+    --error-text: #f85149;
+  }
+}

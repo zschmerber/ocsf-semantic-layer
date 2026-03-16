@@ -1,0 +1,16 @@
+{
+    "name": "endpoint",
+    "caption": "Endpoint",
+    "description": "The endpoint object",
+    "attributes": {
+        "ip": {
+            "type": "string_t",
+            "caption": "IP Address",
+            "observable": 2
+        },
+        "hostname": {
+            "type": "string_t",
+            "caption": "Hostname"
+        }
+    }
+}

@@ -1,0 +1,29 @@
+[package]
+name = "ocsf-cli"
+description = "Command-line interface for OCSF semantic layer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+clap.workspace = true
+dirs = "5.0"
+ocsf-core.workspace = true
+ocsf-semantic.workspace = true
+ocsf-vector.workspace = true
+ocsf-warehouse.workspace = true
+ocsf-viz.workspace = true
+ocsf-editor.workspace = true
+tower-http.workspace = true
+axum.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile = "3.10"

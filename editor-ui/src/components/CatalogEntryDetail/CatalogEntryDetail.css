@@ -1,0 +1,22 @@
+.catalog-detail { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
+.catalog-detail-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.catalog-detail-name { margin: 0; font-size: 16px; font-weight: 600; }
+.catalog-detail-caption { margin: 2px 0 0; font-size: 13px; color: var(--text-secondary, #888); }
+.catalog-detail-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--text-secondary, #888); padding: 0 4px; line-height: 1; }
+.catalog-detail-description { margin: 0; font-size: 13px; color: var(--text-secondary, #aaa); line-height: 1.5; }
+.catalog-detail-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.meta-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--bg-hover, #2a2a2a); border: 1px solid var(--border, #333); }
+.meta-badge.muted { color: var(--text-secondary, #888); }
+.catalog-detail-section { display: flex; flex-direction: column; gap: 8px; }
+.catalog-detail-section h4 { margin: 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary, #888); }
+.count { font-weight: 400; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-code { font-size: 11px; padding: 2px 6px; border-radius: 3px; background: var(--bg-hover, #2a2a2a); border: 1px solid var(--border, #333); font-family: monospace; }
+.muted { color: var(--text-secondary, #888); font-size: 12px; }
+.catalog-detail-json { font-size: 11px; background: var(--bg-secondary, #1e1e1e); border: 1px solid var(--border, #333); border-radius: 4px; padding: 8px; overflow: auto; max-height: 200px; margin: 0; }
+.coverage-grid { display: flex; flex-direction: column; gap: 10px; }
+.coverage-label { display: block; font-size: 11px; color: var(--text-secondary, #888); margin-bottom: 4px; }
+.lineage-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.lineage-table th { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border, #333); color: var(--text-secondary, #888); }
+.lineage-table td { padding: 4px 8px; border-bottom: 1px solid var(--border-subtle, #2a2a2a); }
+.lineage-record { font-size: 12px; padding: 4px 0; }

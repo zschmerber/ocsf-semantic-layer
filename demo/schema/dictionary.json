@@ -1,0 +1,33 @@
+{
+    "attributes": {
+        "user_name": {
+            "type": "string_t",
+            "caption": "User Name",
+            "description": "The name of the user",
+            "requirement": "required",
+            "observable": 10
+        },
+        "email_addr": {
+            "type": "string_t",
+            "caption": "Email Address",
+            "description": "An email address",
+            "observable": 5
+        },
+        "ip": {
+            "type": "string_t",
+            "caption": "IP Address",
+            "description": "An IP address",
+            "observable": 2
+        },
+        "status_id": {
+            "type": "integer_t",
+            "caption": "Status ID",
+            "description": "The status identifier"
+        },
+        "time": {
+            "type": "timestamp_t",
+            "caption": "Event Time",
+            "description": "The event timestamp"
+        }
+    }
+}

@@ -1,0 +1,4 @@
+semantic_models:
+- name: dns_activity
+  description: 'Semantic entity for OCSF DNS Activity (UID: 4003)'
+  ocsf_class_uid: 4003

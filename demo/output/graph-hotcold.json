@@ -1,0 +1,64 @@
+{
+  "nodes": [
+    {
+      "id": "hot_path",
+      "type": "hot_path",
+      "label": "Observables Table",
+      "properties": {
+        "table_name": "ocsf_observables",
+        "description": "Denormalized observables for fast threat intel matching"
+      },
+      "style": {
+        "shape": "cylinder",
+        "color": "#ff6b6b",
+        "border_color": "#cc5555",
+        "border_width": 1.0,
+        "font_size": 12.0,
+        "font_color": "#000000",
+        "highlighted": false,
+        "opacity": 1.0
+      }
+    },
+    {
+      "id": "cold_path",
+      "type": "cold_path",
+      "label": "Full Events Table",
+      "properties": {
+        "description": "Complete OCSF event data for detailed investigation"
+      },
+      "style": {
+        "shape": "cylinder",
+        "color": "#4ecdc4",
+        "border_color": "#3ba99e",
+        "border_width": 1.0,
+        "font_size": 12.0,
+        "font_color": "#000000",
+        "highlighted": false,
+        "opacity": 1.0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "hot_path",
+      "target": "cold_path",
+      "type": "reverse_lookup",
+      "label": "reverse lookup",
+      "style": {
+        "line_style": "dashed",
+        "color": "#e74c3c",
+        "width": 1.0,
+        "arrow_head": "normal",
+        "highlighted": false,
+        "opacity": 1.0
+      }
+    }
+  ],
+  "metadata": {
+    "view_mode": "hot_cold_path",
+    "generated_at": "1769133620",
+    "schema_version": "1.4.0",
+    "model_version": "1.0",
+    "layout": "hierarchical"
+  }
+}

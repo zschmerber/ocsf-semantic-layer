@@ -1,0 +1,17 @@
+{
+    "name": "user",
+    "caption": "User",
+    "description": "The user object",
+    "attributes": {
+        "name": {
+            "type": "string_t",
+            "caption": "Name",
+            "requirement": "required"
+        },
+        "email_addr": {
+            "type": "string_t",
+            "caption": "Email Address",
+            "observable": 5
+        }
+    }
+}

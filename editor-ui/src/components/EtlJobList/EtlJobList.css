@@ -1,0 +1,213 @@
+/**
+ * Styles for the EtlJobList component.
+ *
+ * Job table with alternating row colors, hover effects,
+ * status badges, and header action buttons.
+ */
+
+.etl-job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Header with title and action buttons */
+.etl-job-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.etl-job-list-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #24292e);
+}
+
+.etl-job-list-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Primary button (New Job) */
+.etl-job-list .btn-primary {
+  padding: 0.375rem 0.875rem;
+  background: var(--accent-fg, #0969da);
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.etl-job-list .btn-primary:hover {
+  background: var(--accent-hover, #0860c4);
+}
+
+/* Secondary button (From Catalog) */
+.etl-job-list .btn-secondary {
+  padding: 0.375rem 0.875rem;
+  background: var(--btn-secondary-bg, #fafbfc);
+  color: var(--text-primary, #24292e);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.etl-job-list .btn-secondary:hover {
+  background: var(--btn-secondary-hover, #f3f4f6);
+  border-color: var(--border-hover, #d1d5da);
+}
+
+/* Job table */
+.etl-job-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.etl-job-table th {
+  text-align: left;
+  padding: 0.625rem 0.75rem;
+  background: var(--bg-secondary, #fafbfc);
+  color: var(--text-secondary, #586069);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+}
+
+.etl-job-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+  color: var(--text-primary, #24292e);
+}
+
+/* Alternating row colors */
+.etl-job-table tbody tr:nth-child(even) {
+  background: var(--bg-secondary, #fafbfc);
+}
+
+/* Clickable row hover */
+.etl-job-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.etl-job-row:hover {
+  background: var(--bg-hover, #f0f3f6) !important;
+}
+
+/* View button in actions column */
+.btn-view {
+  padding: 0.25rem 0.625rem;
+  background: transparent;
+  color: var(--accent-fg, #0969da);
+  border: 1px solid var(--accent-fg, #0969da);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view:hover {
+  background: var(--accent-fg, #0969da);
+  color: #fff;
+}
+
+/* Status badges (self-contained for this component) */
+.etl-job-list .status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-transform: capitalize;
+}
+
+.etl-job-list .status-pending {
+  background: #6b7280;
+  color: white;
+}
+
+.etl-job-list .status-active {
+  background: #3b82f6;
+  color: white;
+}
+
+.etl-job-list .status-running {
+  background: #10b981;
+  color: white;
+}
+
+.etl-job-list .status-completed {
+  background: #059669;
+  color: white;
+}
+
+.etl-job-list .status-failed {
+  background: #ef4444;
+  color: white;
+}
+
+/* Loading state */
+.etl-job-list-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--text-muted, #6a737d);
+  font-size: 0.875rem;
+}
+
+.etl-job-list-loading .spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color, #e1e4e8);
+  border-top-color: var(--accent-fg, #0969da);
+  border-radius: 50%;
+  animation: etl-list-spin 0.6s linear infinite;
+}
+
+@keyframes etl-list-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.etl-job-list-error {
+  padding: 0.5rem 0.75rem;
+  background: rgba(215, 58, 73, 0.1);
+  color: #cb2431;
+  border: 1px solid rgba(215, 58, 73, 0.3);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+/* Empty state */
+.etl-job-list-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted, #6a737d);
+  font-size: 0.875rem;
+  border: 1px dashed var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  background: var(--bg-secondary, #fafbfc);
+}

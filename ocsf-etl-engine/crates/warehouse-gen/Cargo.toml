@@ -1,0 +1,20 @@
+[package]
+name = "warehouse-gen"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+etl-core = { path = "../etl-core" }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+# These will be path deps pointing to sibling repos:
+# ocsf-warehouse = { path = "../../../ocsf-warehouse" }
+# ocsf-semantic = { path = "../../../ocsf-semantic" }
+# ocsf-core = { path = "../../../ocsf-core" }
+
+[dev-dependencies]
+proptest = { workspace = true }
+uuid = { workspace = true }

@@ -1,0 +1,67 @@
+semantic_models:
+- name: dns_event
+  description: DNS queries and responses with threat detection capabilities
+  model: ref('ocsf_dns_event')
+  default_time_dimension: event_time
+  entities:
+  - name: dns_event
+    type: primary
+  dimensions:
+  - name: query_hostname
+    type: categorical
+    expr: query.hostname
+    description: The fully qualified domain name being queried
+  - name: query_type
+    type: categorical
+    expr: query.type
+    description: DNS record type being queried
+  - name: source_ip
+    type: categorical
+    expr: src_endpoint.ip
+    description: IP address of the client making the DNS query
+  - name: response_code
+    type: categorical
+    expr: rcode
+    description: DNS response code (NOERROR, NXDOMAIN, SERVFAIL, etc.)
+  - name: action
+    type: categorical
+    expr: action
+    description: Action taken on the DNS query (Allowed, Blocked, etc.)
+  - name: severity
+    type: categorical
+    expr: severity
+    description: Event severity level
+  - name: cloud_provider
+    type: categorical
+    expr: cloud.provider
+    description: Cloud service provider hosting the DNS infrastructure
+  - name: cloud_region
+    type: categorical
+    expr: cloud.region
+    description: Cloud region where the DNS query originated
+  - name: event_time
+    type: time
+    expr: time
+    time_granularity: day
+    description: Event timestamp
+  measures:
+  - name: dns_query_count
+    agg: count
+    expr: metadata.uid
+    description: Total number of DNS queries
+    create_metric: true
+  - name: blocked_dns_rate
+    agg: average
+    expr: CASE WHEN action != 'Allowed' THEN 1.0 ELSE 0.0 END
+    description: Percentage of blocked DNS queries
+    create_metric: true
+  - name: dns_by_severity
+    agg: count
+    expr: metadata.uid
+    description: Count of DNS events grouped by severity
+    create_metric: true
+  - name: nxdomain_rate
+    agg: average
+    expr: CASE WHEN response_code = 'NXDOMAIN' THEN 1.0 ELSE 0.0 END
+    description: Percentage of DNS queries resulting in NXDOMAIN (potential DGA indicator)
+    create_metric: true
