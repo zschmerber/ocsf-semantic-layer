@@ -10,7 +10,7 @@ use proptest::prelude::*;
 use proptest::collection::vec;
 
 use crate::entity::OCSFMapping;
-use crate::metric::{Aggregation, SemanticMetric, TimeGranularity};
+use crate::metric::{Aggregation, MetricType, SemanticMetric, TimeGranularity};
 use crate::model::SemanticModel;
 
 // ============================================================================
@@ -125,6 +125,11 @@ fn semantic_metric_strategy() -> impl Strategy<Value = SemanticMetric> {
                     time_granularities,
                     is_hot_path,
                     observable_type_id,
+                    metric_type: MetricType::default(),
+                    formula: None,
+                    non_additive_dimensions: Vec::new(),
+                    is_hidden: false,
+                    folder: None,
                 }
             },
         )

@@ -18,6 +18,7 @@ import type {
   SemanticEntity,
   SemanticMetric,
   SemanticAttribute,
+  Dataset,
   SchemaTree,
   ValidationError,
   ValidationWarning,
@@ -104,6 +105,14 @@ export interface EditorState {
   addMetric: (metric: SemanticMetric) => void;
   updateMetric: (name: string, updates: Partial<SemanticMetric>) => void;
   removeMetric: (name: string) => void;
+
+  // Dataset CRUD actions (Requirement: 8.6)
+  addDataset: (dataset: Dataset) => void;
+  updateDataset: (name: string, dataset: Dataset) => void;
+  removeDataset: (name: string) => void;
+
+  // Entity dataset ref action (Requirement: 8.4)
+  updateEntityDatasetRef: (entityName: string, datasetRef: string | undefined) => void;
 
   // Schema actions
   setSchema: (schema: SchemaTree) => void;
@@ -473,6 +482,83 @@ export const useEditorStore = create<EditorState>()(
       }),
 
     // ========================================
+    // Dataset CRUD Actions (Requirement: 8.6)
+    // ========================================
+
+    addDataset: (dataset) =>
+      set((state) => {
+        const datasets = state.model.datasets ?? [];
+        const newModel = {
+          ...state.model,
+          datasets: [...datasets, dataset],
+        };
+        const { history, historyIndex } = pushToHistory(state.history, state.historyIndex, newModel);
+        return {
+          model: newModel,
+          isDirty: true,
+          history,
+          historyIndex,
+          canUndo: historyIndex > 0,
+          canRedo: false,
+        };
+      }),
+
+    updateDataset: (name, dataset) =>
+      set((state) => {
+        const datasets = state.model.datasets ?? [];
+        const newModel = {
+          ...state.model,
+          datasets: datasets.map((d) => (d.name === name ? dataset : d)),
+        };
+        const { history, historyIndex } = pushToHistory(state.history, state.historyIndex, newModel);
+        return {
+          model: newModel,
+          isDirty: true,
+          history,
+          historyIndex,
+          canUndo: historyIndex > 0,
+          canRedo: false,
+        };
+      }),
+
+    removeDataset: (name) =>
+      set((state) => {
+        const datasets = state.model.datasets ?? [];
+        const newModel = {
+          ...state.model,
+          datasets: datasets.filter((d) => d.name !== name),
+        };
+        const { history, historyIndex } = pushToHistory(state.history, state.historyIndex, newModel);
+        return {
+          model: newModel,
+          isDirty: true,
+          history,
+          historyIndex,
+          canUndo: historyIndex > 0,
+          canRedo: false,
+        };
+      }),
+
+    updateEntityDatasetRef: (entityName, datasetRef) =>
+      set((state) => {
+        const newModel = {
+          ...state.model,
+          entities: state.model.entities.map((e) =>
+            e.name === entityName ? { ...e, dataset_ref: datasetRef } : e
+          ),
+        };
+        const { history, historyIndex } = pushToHistory(state.history, state.historyIndex, newModel);
+        return {
+          model: newModel,
+          isDirty: true,
+          history,
+          historyIndex,
+          canUndo: historyIndex > 0,
+          canRedo: false,
+        };
+      }),
+
+    // ========================================
     // Schema Actions
     // ========================================
 
@@ -618,3 +704,35 @@ export const selectHasErrors = (state: EditorState): boolean =>
  */
 export const selectHasWarnings = (state: EditorState): boolean =>
   state.validationWarnings.length > 0;
+
+/**
+ * Get all datasets from the current model.
+ */
+export const selectDatasets = (state: EditorState): Dataset[] =>
+  state.model.datasets ?? [];
+
+/**
+ * Get visible (non-hidden) attributes for an entity.
+ */
+export const selectVisibleAttributes = (state: EditorState, entityName: string): SemanticAttribute[] => {
+  const entity = state.model.entities.find((e) => e.name === entityName);
+  if (!entity) return [];
+  return entity.attributes.filter((a) => !a.is_hidden);
+};
+
+/**
+ * Group attributes by folder for an entity. Ungrouped attributes use empty string key.
+ */
+export const selectAttributesByFolder = (state: EditorState, entityName: string): Record<string, SemanticAttribute[]> => {
+  const entity = state.model.entities.find((e) => e.name === entityName);
+  if (!entity) return {};
+  const grouped: Record<string, SemanticAttribute[]> = {};
+  for (const attr of entity.attributes) {
+    const folder = attr.folder ?? '';
+    if (!grouped[folder]) {
+      grouped[folder] = [];
+    }
+    grouped[folder].push(attr);
+  }
+  return grouped;
+};

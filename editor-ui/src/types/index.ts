@@ -28,6 +28,30 @@ export type SemanticType =
   | { array: SemanticType };
 
 /**
+ * A single level in a dimension drill-down hierarchy.
+ */
+export interface HierarchyLevel {
+  name: string;
+  attribute_ref: string;
+}
+
+/**
+ * Classification of metric additivity behavior.
+ */
+export type MetricType = 'Additive' | 'SemiAdditive' | 'NonAdditive';
+
+/**
+ * A physical data source abstraction decoupled from semantic definitions.
+ */
+export interface Dataset {
+  name: string;
+  dialect: string;
+  table: string;
+  schema_name?: string;
+  connection?: string;
+}
+
+/**
  * Mapping from semantic attribute to OCSF fields.
  */
 export interface OCSFMapping {
@@ -52,6 +76,9 @@ export interface SemanticAttribute {
   value_pattern?: string;
   is_observable: boolean;
   threat_relevance?: ThreatRelevance;
+  hierarchy?: HierarchyLevel[];
+  is_hidden?: boolean;
+  folder?: string;
 }
 
 /**
@@ -79,6 +106,7 @@ export interface EntityRelationship {
   cardinality: Cardinality;
   join_condition: string;
   description: string;
+  role_alias?: string;
 }
 
 /**
@@ -92,6 +120,7 @@ export interface SemanticEntity {
   attributes: SemanticAttribute[];
   relationships: EntityRelationship[];
   covers_observables: number[];
+  dataset_ref?: string;
 }
 
 /**
@@ -117,6 +146,11 @@ export interface SemanticMetric {
   time_granularities: TimeGranularity[];
   is_hot_path: boolean;
   observable_type_id?: number;
+  metric_type?: MetricType;
+  formula?: string;
+  non_additive_dimensions?: string[];
+  is_hidden?: boolean;
+  folder?: string;
 }
 
 /**
@@ -139,6 +173,7 @@ export interface SemanticModel {
   entities: SemanticEntity[];
   metrics: SemanticMetric[];
   observable_config: ObservableConfig;
+  datasets?: Dataset[];
 }
 
 // ============================================
@@ -524,6 +559,7 @@ export function createDefaultAttribute(name: string): SemanticAttribute {
     sample_values: [],
     synonyms: [],
     is_observable: false,
+    is_hidden: false,
   };
 }
 
@@ -540,6 +576,7 @@ export function createDefaultMetric(name: string): SemanticMetric {
     dimensions: [],
     time_granularities: [],
     is_hot_path: false,
+    metric_type: 'Additive' as MetricType,
   };
 }
 

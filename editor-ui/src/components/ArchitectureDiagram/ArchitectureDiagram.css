@@ -416,3 +416,255 @@
   border-radius: 4px;
   font-size: 0.8rem;
 }
+
+/* ── Semantic Layer Diagram ── */
+
+.semantic-layer-diagram {
+  max-width: 960px;
+}
+
+.sl-layer-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.sl-box-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.sl-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-primary);
+}
+
+.sl-box-sub {
+  font-size: 9.5px;
+  fill: var(--text-secondary);
+}
+
+.sl-box-example {
+  font-size: 9px;
+  fill: #667eea;
+  font-style: italic;
+}
+
+.sl-arrow-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sl-persona {
+  font-size: 11px;
+  fill: var(--text-secondary);
+}
+
+/* Physical layer boxes */
+.sl-physical-box {
+  fill: white;
+  stroke: #ce93d8;
+  stroke-width: 1;
+}
+
+/* Semantic layer boxes */
+.sl-semantic-box {
+  fill: white;
+  stroke: #667eea;
+  stroke-width: 1.5;
+}
+
+.sl-semantic-box.entity {
+  stroke: #4299e1;
+}
+
+.sl-semantic-box.metric {
+  stroke: #ed8936;
+}
+
+.sl-semantic-box.dataset {
+  stroke: #48bb78;
+}
+
+.sl-semantic-box.relationship {
+  stroke: #9f7aea;
+}
+
+.sl-semantic-box.hierarchy {
+  stroke: #a0aec0;
+}
+
+/* Engine boxes */
+.sl-engine-box {
+  fill: rgba(102, 126, 234, 0.08);
+  stroke: #a3bffa;
+  stroke-width: 1;
+  stroke-dasharray: 4;
+}
+
+/* Consumer / business layer boxes */
+.sl-consumer-box {
+  fill: white;
+  stroke: #66bb6a;
+  stroke-width: 1.5;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .sl-physical-box {
+    fill: var(--bg-primary);
+  }
+
+  .sl-semantic-box {
+    fill: var(--bg-primary);
+  }
+
+  .sl-engine-box {
+    fill: rgba(102, 126, 234, 0.12);
+  }
+
+  .sl-consumer-box {
+    fill: var(--bg-primary);
+  }
+}
+
+/* ── Index layer boxes ── */
+.sl-index-box {
+  fill: white;
+  stroke: #38b2ac;
+  stroke-width: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sl-index-box {
+    fill: var(--bg-primary);
+  }
+}
+
+/* ── Layer vs Index Comparison ── */
+
+.layer-vs-index {
+  max-width: 920px;
+}
+
+.cmp-section-title {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cmp-subtitle {
+  font-size: 10px;
+  fill: var(--text-secondary);
+  font-style: italic;
+}
+
+.cmp-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text-primary);
+}
+
+.cmp-box-desc {
+  font-size: 9.5px;
+  fill: var(--text-secondary);
+}
+
+.cmp-example-title {
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--text-secondary);
+}
+
+.cmp-example {
+  font-size: 9.5px;
+  fill: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.cmp-role-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.cmp-role-sub {
+  font-size: 9.5px;
+  fill: var(--text-secondary);
+}
+
+.cmp-arrow-label {
+  font-size: 9px;
+  fill: var(--text-secondary);
+  font-weight: 500;
+}
+
+.cmp-flow-title {
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--text-primary);
+}
+
+.cmp-flow-desc {
+  font-size: 9px;
+  fill: var(--text-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .layer-vs-index rect[fill="white"] {
+    fill: var(--bg-primary);
+  }
+}
+
+/* ── Databricks Diagram ── */
+
+.databricks-diagram {
+  max-width: 960px;
+}
+
+.db-workspace-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.db-section-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.db-box-title {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--text-primary);
+}
+
+.db-item {
+  font-size: 9.5px;
+  fill: var(--text-primary);
+}
+
+.db-item-dim {
+  font-size: 9px;
+  fill: var(--text-secondary);
+}
+
+.db-code {
+  font-size: 9px;
+  fill: var(--text-primary);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.db-arrow-label {
+  font-size: 9px;
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+  .databricks-diagram rect[fill="white"] {
+    fill: var(--bg-primary);
+  }
+  .databricks-diagram rect[fill="#fafafa"] {
+    fill: var(--bg-secondary);
+  }
+}

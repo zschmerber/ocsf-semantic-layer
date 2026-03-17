@@ -42,6 +42,26 @@ impl Aggregation {
     }
 }
 
+/// Classification of metric additivity behavior.
+///
+/// Controls which dimensions a metric can be aggregated across.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MetricType {
+    /// Metric can be summed across all dimensions.
+    Additive,
+    /// Metric can only be summed across certain dimensions.
+    SemiAdditive,
+    /// Metric cannot be summed across any dimension.
+    NonAdditive,
+}
+
+impl Default for MetricType {
+    fn default() -> Self {
+        MetricType::Additive
+    }
+}
+
 /// Time granularity for time-based aggregations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -111,6 +131,26 @@ pub struct SemanticMetric {
     /// Observable type_id if this metric operates on the observables table.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub observable_type_id: Option<u32>,
+
+    /// Additivity classification.
+    #[serde(default)]
+    pub metric_type: MetricType,
+
+    /// Formula expression for calculated metrics (references other metric names).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub formula: Option<String>,
+
+    /// Dimensions across which a semi-additive metric cannot be summed.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub non_additive_dimensions: Vec<String>,
+
+    /// Whether this metric is hidden from downstream UI/views.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
+    pub is_hidden: bool,
+
+    /// Logical folder for UI grouping.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
 }
 
 impl SemanticMetric {
@@ -126,6 +166,11 @@ impl SemanticMetric {
             time_granularities: Vec::new(),
             is_hot_path: false,
             observable_type_id: None,
+            metric_type: MetricType::default(),
+            formula: None,
+            non_additive_dimensions: Vec::new(),
+            is_hidden: false,
+            folder: None,
         }
     }
 
@@ -202,6 +247,41 @@ impl SemanticMetric {
         self
     }
 
+    /// Sets the metric type (additivity classification).
+    pub fn with_metric_type(mut self, metric_type: MetricType) -> Self {
+        self.metric_type = metric_type;
+        self
+    }
+
+    /// Sets the formula expression for calculated metrics.
+    pub fn with_formula(mut self, formula: impl Into<String>) -> Self {
+        self.formula = Some(formula.into());
+        self
+    }
+
+    /// Sets the non-additive dimensions for semi-additive metrics.
+    pub fn with_non_additive_dimensions(mut self, dims: Vec<String>) -> Self {
+        self.non_additive_dimensions = dims;
+        self
+    }
+
+    /// Marks this metric as hidden from downstream UI/views.
+    pub fn as_hidden(mut self) -> Self {
+        self.is_hidden = true;
+        self
+    }
+
+    /// Sets the logical folder for UI grouping.
+    pub fn with_folder(mut self, folder: impl Into<String>) -> Self {
+        self.folder = Some(folder.into());
+        self
+    }
+
+    /// Returns true if this metric is a calculated metric (has a formula).
+    pub fn is_calculated(&self) -> bool {
+        self.formula.is_some()
+    }
+
     /// Returns true if this metric supports the given time granularity.
     pub fn supports_granularity(&self, granularity: TimeGranularity) -> bool {
         self.time_granularities.contains(&granularity)
@@ -211,6 +291,49 @@ impl SemanticMetric {
     pub fn supports_dimension(&self, dimension: &str) -> bool {
         self.dimensions.iter().any(|d| d == dimension)
     }
+}
+
+/// Extracts metric name references from a formula string.
+///
+/// Metric names are identifiers (alphanumeric + underscore, starting with letter/underscore)
+/// separated by arithmetic operators (+, -, *, /) and parentheses.
+/// Numeric literals and field paths (containing dots) are excluded.
+/// Returns unique metric name references in order of first appearance.
+pub fn extract_metric_references(formula: &str) -> Vec<String> {
+    let mut seen = std::collections::HashSet::new();
+    let mut result = Vec::new();
+
+    let tokens = formula.split(|c: char| {
+        c.is_whitespace() || c == '+' || c == '-' || c == '*' || c == '/' || c == '(' || c == ')'
+    });
+
+    for token in tokens {
+        let token = token.trim();
+        if token.is_empty() {
+            continue;
+        }
+        // Skip numeric literals
+        if token.parse::<f64>().is_ok() {
+            continue;
+        }
+        // Skip field paths (contain dots)
+        if token.contains('.') {
+            continue;
+        }
+        // Valid identifier: starts with letter or underscore, rest alphanumeric or underscore
+        let mut chars = token.chars();
+        let is_valid = chars
+            .next()
+            .map(|c| c.is_ascii_alphabetic() || c == '_')
+            .unwrap_or(false)
+            && chars.all(|c| c.is_ascii_alphanumeric() || c == '_');
+
+        if is_valid && seen.insert(token.to_string()) {
+            result.push(token.to_string());
+        }
+    }
+
+    result
 }
 
 #[cfg(test)]
@@ -320,5 +443,29 @@ mod tests {
         assert_eq!(metric, deserialized);
         assert!(deserialized.is_hot_path);
         assert_eq!(deserialized.observable_type_id, Some(2));
+    }
+
+    #[test]
+    fn test_extract_metric_references_simple_formula() {
+        let refs = extract_metric_references("success_count / total_count");
+        assert_eq!(refs, vec!["success_count", "total_count"]);
+    }
+
+    #[test]
+    fn test_extract_metric_references_with_parentheses() {
+        let refs = extract_metric_references("(a + b) / c");
+        assert_eq!(refs, vec!["a", "b", "c"]);
+    }
+
+    #[test]
+    fn test_extract_metric_references_with_numeric_literals() {
+        let refs = extract_metric_references("metric_a * 100");
+        assert_eq!(refs, vec!["metric_a"]);
+    }
+
+    #[test]
+    fn test_extract_metric_references_empty_formula() {
+        let refs = extract_metric_references("");
+        assert!(refs.is_empty());
     }
 }

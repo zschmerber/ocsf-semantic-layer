@@ -8,7 +8,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useEditorStore } from '../../store';
-import type { SemanticEntity, ClassNode, ResearchTarget } from '../../types';
+import type { SemanticEntity, ClassNode, ResearchTarget, EntityRelationship } from '../../types';
 import { EntityForm } from './EntityForm';
 import { EntityList } from './EntityList';
 import { AttributeMappingZone } from './AttributeMappingZone';
@@ -210,6 +210,14 @@ export function EntityEditor() {
             <AttributeMappingZone
               entity={currentEntity}
             />
+
+            {/* Relationships Section */}
+            {currentEntity.relationships.length > 0 && (
+              <RelationshipsSection
+                entity={currentEntity}
+                onUpdateEntity={updateEntity}
+              />
+            )}
           </div>
         )}
 
@@ -233,6 +241,70 @@ export function EntityEditor() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// RelationshipsSection Component
+// ============================================
+
+function RelationshipsSection({
+  entity,
+  onUpdateEntity,
+}: {
+  entity: SemanticEntity;
+  onUpdateEntity: (name: string, updates: Partial<SemanticEntity>) => void;
+}) {
+  const handleRoleAliasChange = useCallback(
+    (index: number, value: string) => {
+      const updatedRelationships: EntityRelationship[] = entity.relationships.map(
+        (rel, i) =>
+          i === index
+            ? { ...rel, role_alias: value || undefined }
+            : rel
+      );
+      onUpdateEntity(entity.name, { relationships: updatedRelationships });
+    },
+    [entity, onUpdateEntity]
+  );
+
+  return (
+    <div className="relationships-section">
+      <h4 className="relationships-section-title">Relationships</h4>
+      <div className="relationships-list">
+        {entity.relationships.map((rel, index) => (
+          <div key={`${rel.name}-${index}`} className="relationship-item">
+            <div className="relationship-item-header">
+              <span className="relationship-name">{rel.name}</span>
+              <span className="relationship-cardinality-badge">{rel.cardinality}</span>
+            </div>
+            <div className="relationship-item-meta">
+              <span className="relationship-target">
+                → <code>{rel.target_entity}</code>
+              </span>
+              {rel.join_condition && (
+                <span className="relationship-join">
+                  <code>{rel.join_condition}</code>
+                </span>
+              )}
+            </div>
+            <div className="relationship-role-alias">
+              <label className="relationship-role-alias-label" htmlFor={`role-alias-${index}`}>
+                Role Alias
+              </label>
+              <input
+                id={`role-alias-${index}`}
+                type="text"
+                className="form-input relationship-role-alias-input"
+                placeholder="e.g. src_user"
+                value={rel.role_alias ?? ''}
+                onChange={(e) => handleRoleAliasChange(index, e.target.value)}
+              />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

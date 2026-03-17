@@ -191,6 +191,26 @@ export function AttributeMappingZone({ entity }: AttributeMappingZoneProps) {
     };
   }, [entity.attributes, fieldMappings]);
   
+  // Group attributes by folder for list view organization (Requirement 8.9)
+  const groupedAttributes = useMemo(() => {
+    const ungrouped: SemanticAttribute[] = [];
+    const folders = new Map<string, SemanticAttribute[]>();
+    let hasFolders = false;
+
+    for (const attr of entity.attributes) {
+      if (attr.folder) {
+        hasFolders = true;
+        const list = folders.get(attr.folder) || [];
+        list.push(attr);
+        folders.set(attr.folder, list);
+      } else {
+        ungrouped.push(attr);
+      }
+    }
+
+    return { ungrouped, folders, hasFolders };
+  }, [entity.attributes]);
+
   // Apply all suggestions handler (Requirement 16.6)
   const handleApplyAllSuggestions = useCallback(() => {
     for (const [attrName, suggestion] of suggestionsMap) {
@@ -332,7 +352,8 @@ export function AttributeMappingZone({ entity }: AttributeMappingZoneProps) {
           </div>
         ) : (
           <div className="attribute-list">
-            {entity.attributes.map((attr) => (
+            {/* Render ungrouped attributes first (Requirement 8.9) */}
+            {groupedAttributes.ungrouped.map((attr) => (
               <div key={attr.name} className="attribute-item-wrapper">
                 {editingAttribute === attr.name ? (
                   <AttributeEditor
@@ -371,6 +392,58 @@ export function AttributeMappingZone({ entity }: AttributeMappingZoneProps) {
                     hasSuggestion={suggestionsMap.has(attr.name)}
                   />
                 )}
+              </div>
+            ))}
+
+            {/* Render folder-grouped attributes with headers (Requirement 8.9) */}
+            {groupedAttributes.hasFolders && Array.from(groupedAttributes.folders.entries()).map(([folder, attrs]) => (
+              <div key={`folder-${folder}`} className="folder-group">
+                <div className="folder-group-header">
+                  <span className="folder-group-icon">📁</span>
+                  <span>{folder}</span>
+                  <span className="folder-group-count">({attrs.length})</span>
+                </div>
+                {attrs.map((attr) => (
+                  <div key={attr.name} className="attribute-item-wrapper">
+                    {editingAttribute === attr.name ? (
+                      <AttributeEditor
+                        attribute={attr}
+                        existingNames={new Set(
+                          entity.attributes
+                            .filter((a) => a.name !== attr.name)
+                            .map((a) => a.name)
+                        )}
+                        onSave={(updates) => handleSaveAttribute(attr.name, updates)}
+                        onCancel={() => setEditingAttribute(null)}
+                        onDelete={() => handleDeleteAttribute(attr.name)}
+                      />
+                    ) : researchTarget?.type === 'attribute' && 
+                         researchTarget.attribute.name === attr.name ? (
+                      <div className="attribute-research-wrapper">
+                        <AttributeItem
+                          attribute={attr}
+                          onEdit={() => handleEditAttribute(attr.name)}
+                          onDelete={() => handleDeleteAttribute(attr.name)}
+                          onResearch={() => handleResearchAttribute(attr)}
+                          isResearching
+                          hasSuggestion={suggestionsMap.has(attr.name)}
+                        />
+                        <LLMResearchPanel
+                          target={researchTarget}
+                          onClose={handleCloseResearch}
+                        />
+                      </div>
+                    ) : (
+                      <AttributeItem
+                        attribute={attr}
+                        onEdit={() => handleEditAttribute(attr.name)}
+                        onDelete={() => handleDeleteAttribute(attr.name)}
+                        onResearch={() => handleResearchAttribute(attr)}
+                        hasSuggestion={suggestionsMap.has(attr.name)}
+                      />
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
             

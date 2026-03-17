@@ -5,7 +5,7 @@
 //! - model SQL files
 //! - sources.yml
 
-use ocsf_semantic::{SemanticEntity, SemanticMetric, SemanticModel, WarehouseDialect};
+use ocsf_semantic::{MetricType, SemanticEntity, SemanticMetric, SemanticModel, WarehouseDialect};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -75,7 +75,7 @@ pub struct DBTEntity {
 pub struct DBTDimension {
     /// Dimension name.
     pub name: String,
-    /// Dimension type (categorical, time).
+    /// Dimension type (categorical, time, hierarchy).
     #[serde(rename = "type")]
     pub dimension_type: String,
     /// Expression for the dimension.
@@ -84,6 +84,9 @@ pub struct DBTDimension {
     /// Time granularity for time dimensions.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub time_granularity: Option<String>,
+    /// Hierarchy type for hierarchy dimensions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hierarchy_type: Option<String>,
     /// Description.
     #[serde(skip_serializing_if = "String::is_empty")]
     pub description: String,
@@ -105,6 +108,15 @@ pub struct DBTMeasure {
     /// Whether this creates a metric.
     #[serde(default)]
     pub create_metric: bool,
+    /// Time dimension constraint for semi-additive measures.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agg_time_dimension: Option<String>,
+    /// Metric type (e.g., "derived" for calculated metrics).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metric_type: Option<String>,
+    /// Formula expression for derived metrics.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub formula: Option<String>,
 }
 
 /// dbt source definition.
@@ -236,18 +248,29 @@ impl DBTGenerator {
 
         // Convert attributes to dimensions
         for attr in &entity.attributes {
-            if attr.is_dimension {
+            if attr.is_dimension || !attr.hierarchy.is_empty() {
                 let expr = attr
                     .ocsf_mapping
                     .field
                     .clone()
                     .or_else(|| attr.ocsf_mapping.expression.clone());
 
+                let dimension_type = if !attr.hierarchy.is_empty() {
+                    "hierarchy".to_string()
+                } else {
+                    "categorical".to_string()
+                };
+
                 dimensions.push(DBTDimension {
                     name: attr.name.clone(),
-                    dimension_type: "categorical".to_string(),
+                    dimension_type,
                     expr,
                     time_granularity: None,
+                    hierarchy_type: if !attr.hierarchy.is_empty() {
+                        Some("hierarchy".to_string())
+                    } else {
+                        None
+                    },
                     description: attr.description.clone(),
                 });
             }
@@ -259,6 +282,7 @@ impl DBTGenerator {
             dimension_type: "time".to_string(),
             expr: Some("time".to_string()),
             time_granularity: Some("day".to_string()),
+            hierarchy_type: None,
             description: "Event timestamp".to_string(),
         });
 
@@ -291,6 +315,20 @@ impl DBTGenerator {
 
     /// Converts a semantic metric to a dbt measure.
     fn metric_to_dbt_measure(&self, metric: &SemanticMetric) -> DBTMeasure {
+        // Handle calculated/derived metrics
+        if metric.is_calculated() {
+            return DBTMeasure {
+                name: metric.name.clone(),
+                agg: "derived".to_string(),
+                expr: None,
+                description: metric.description.clone(),
+                create_metric: true,
+                agg_time_dimension: None,
+                metric_type: Some("derived".to_string()),
+                formula: metric.formula.clone(),
+            };
+        }
+
         let agg = match metric.aggregation {
             ocsf_semantic::Aggregation::Count => "count",
             ocsf_semantic::Aggregation::Sum => "sum",
@@ -306,12 +344,22 @@ impl DBTGenerator {
             .clone()
             .or_else(|| metric.measure.expression.clone());
 
+        // Set agg_time_dimension for semi-additive measures
+        let agg_time_dimension = if metric.metric_type == MetricType::SemiAdditive {
+            metric.non_additive_dimensions.first().cloned()
+        } else {
+            None
+        };
+
         DBTMeasure {
             name: metric.name.clone(),
             agg: agg.to_string(),
             expr,
             description: metric.description.clone(),
             create_metric: true,
+            agg_time_dimension,
+            metric_type: None,
+            formula: None,
         }
     }
 

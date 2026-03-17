@@ -86,7 +86,7 @@ impl ViewGenerator {
 
         for entity in &model.entities {
             let view_name = format!("{}{}", self.config.view_prefix, entity.name);
-            let sql = self.generate_entity_view(entity);
+            let sql = self.generate_entity_view(entity, model);
             views.add(view_name, sql);
         }
 
@@ -94,7 +94,7 @@ impl ViewGenerator {
     }
 
     /// Generates a view for a single entity.
-    pub fn generate_entity_view(&self, entity: &SemanticEntity) -> String {
+    pub fn generate_entity_view(&self, entity: &SemanticEntity, model: &SemanticModel) -> String {
         let view_name = format!("{}{}", self.config.view_prefix, entity.name);
         let qualified_view_name = self.qualify_name(&view_name);
 
@@ -120,8 +120,11 @@ impl ViewGenerator {
             "    status_id".to_string(),
         ];
 
-        // Add entity attributes with their mappings
+        // Add entity attributes with their mappings, excluding hidden ones
         for attr in &entity.attributes {
+            if attr.is_hidden {
+                continue;
+            }
             let column_expr = self.attribute_to_column_expr(attr);
             columns.push(column_expr);
         }
@@ -130,7 +133,7 @@ impl ViewGenerator {
         sql.push('\n');
 
         // FROM clause
-        let source_table = self.get_source_table(entity);
+        let source_table = self.get_source_table(entity, model);
         sql.push_str(&format!("FROM {}", source_table));
 
         // WHERE clause for class_uid filter
@@ -178,9 +181,19 @@ impl ViewGenerator {
         }
     }
 
-    /// Gets the source table for an entity.
-    fn get_source_table(&self, entity: &SemanticEntity) -> String {
-        // Use a union of all source event class tables, or a generic events table
+    /// Gets the source table for an entity, resolving dataset_ref if present.
+    fn get_source_table(&self, entity: &SemanticEntity, model: &SemanticModel) -> String {
+        // Resolve dataset_ref to a Dataset table if present
+        if let Some(ref dataset_ref) = entity.dataset_ref {
+            if let Some(dataset) = model.datasets.iter().find(|d| d.name == *dataset_ref) {
+                return match &dataset.schema_name {
+                    Some(schema) => format!("{}.{}", schema, dataset.table),
+                    None => dataset.table.clone(),
+                };
+            }
+        }
+
+        // Fallback to existing OCSF table naming
         if entity.source_event_classes.is_empty() {
             self.qualify_name(&format!("{}events", self.config.table_prefix))
         } else if entity.source_event_classes.len() == 1 {
@@ -237,11 +250,16 @@ mod tests {
             )
     }
 
+    fn create_test_model() -> SemanticModel {
+        SemanticModel::new("test").add_entity(create_test_entity())
+    }
+
     #[test]
     fn test_view_generator_creates_view() {
         let entity = create_test_entity();
+        let model = create_test_model();
         let generator = ViewGenerator::new(WarehouseDialect::Snowflake);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         assert!(sql.contains("CREATE OR REPLACE VIEW"));
         assert!(sql.contains("v_authentication_event"));
@@ -252,8 +270,9 @@ mod tests {
     #[test]
     fn test_view_contains_attributes() {
         let entity = create_test_entity();
+        let model = create_test_model();
         let generator = ViewGenerator::new(WarehouseDialect::Snowflake);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         assert!(sql.contains("user_email"));
         assert!(sql.contains("auth_result"));
@@ -262,8 +281,9 @@ mod tests {
     #[test]
     fn test_view_contains_class_uid_filter() {
         let entity = create_test_entity();
+        let model = create_test_model();
         let generator = ViewGenerator::new(WarehouseDialect::Snowflake);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         assert!(sql.contains("WHERE class_uid = 3002"));
     }
@@ -271,16 +291,16 @@ mod tests {
     #[test]
     fn test_view_syntax_validation() {
         let entity = create_test_entity();
+        let model = create_test_model();
         let generator = ViewGenerator::new(WarehouseDialect::Postgres);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         assert!(generator.validate_syntax(&sql));
     }
 
     #[test]
     fn test_view_definitions_collection() {
-        let model = SemanticModel::new("test")
-            .add_entity(create_test_entity());
+        let model = create_test_model();
 
         let generator = ViewGenerator::new(WarehouseDialect::BigQuery);
         let views = generator.generate(&model);
@@ -291,21 +311,99 @@ mod tests {
     #[test]
     fn test_dialect_specific_json_extraction() {
         let entity = create_test_entity();
+        let model = create_test_model();
 
         // BigQuery
         let bq_gen = ViewGenerator::new(WarehouseDialect::BigQuery);
-        let bq_sql = bq_gen.generate_entity_view(&entity);
+        let bq_sql = bq_gen.generate_entity_view(&entity, &model);
         assert!(bq_sql.contains("JSON_EXTRACT_SCALAR"));
 
         // Snowflake
         let sf_gen = ViewGenerator::new(WarehouseDialect::Snowflake);
-        let sf_sql = sf_gen.generate_entity_view(&entity);
+        let sf_sql = sf_gen.generate_entity_view(&entity, &model);
         assert!(sf_sql.contains("raw_data:"));
 
         // Postgres
         let pg_gen = ViewGenerator::new(WarehouseDialect::Postgres);
-        let pg_sql = pg_gen.generate_entity_view(&entity);
+        let pg_sql = pg_gen.generate_entity_view(&entity, &model);
         assert!(pg_sql.contains("->>"));
+    }
+
+    #[test]
+    fn test_hidden_attributes_excluded() {
+        let entity = SemanticEntity::new("test_entity")
+            .with_source_event_classes(vec![1001])
+            .add_attribute(
+                SemanticAttribute::new("visible_attr")
+                    .with_type(SemanticType::String)
+                    .with_mapping(OCSFMapping::from_field("field_a")),
+            )
+            .add_attribute(
+                SemanticAttribute::new("hidden_attr")
+                    .with_type(SemanticType::String)
+                    .with_mapping(OCSFMapping::from_field("field_b"))
+                    .as_hidden(),
+            );
+        let model = SemanticModel::new("test").add_entity(entity.clone());
+        let generator = ViewGenerator::new(WarehouseDialect::Snowflake);
+        let sql = generator.generate_entity_view(&entity, &model);
+
+        assert!(sql.contains("visible_attr"));
+        assert!(!sql.contains("hidden_attr"));
+    }
+
+    #[test]
+    fn test_dataset_ref_table_resolution() {
+        use ocsf_semantic::Dataset;
+
+        let entity = SemanticEntity::new("test_entity")
+            .with_source_event_classes(vec![1001])
+            .with_dataset_ref("my_warehouse")
+            .add_attribute(
+                SemanticAttribute::new("col_a")
+                    .with_type(SemanticType::String)
+                    .with_mapping(OCSFMapping::from_field("field_a")),
+            );
+        let model = SemanticModel::new("test")
+            .add_entity(entity.clone())
+            .add_dataset(Dataset {
+                name: "my_warehouse".to_string(),
+                dialect: "snowflake".to_string(),
+                table: "events_table".to_string(),
+                schema_name: Some("analytics".to_string()),
+                connection: None,
+            });
+        let generator = ViewGenerator::new(WarehouseDialect::Snowflake);
+        let sql = generator.generate_entity_view(&entity, &model);
+
+        assert!(sql.contains("FROM analytics.events_table"));
+    }
+
+    #[test]
+    fn test_dataset_ref_without_schema() {
+        use ocsf_semantic::Dataset;
+
+        let entity = SemanticEntity::new("test_entity")
+            .with_source_event_classes(vec![1001])
+            .with_dataset_ref("simple_ds")
+            .add_attribute(
+                SemanticAttribute::new("col_a")
+                    .with_type(SemanticType::String)
+                    .with_mapping(OCSFMapping::from_field("field_a")),
+            );
+        let model = SemanticModel::new("test")
+            .add_entity(entity.clone())
+            .add_dataset(Dataset {
+                name: "simple_ds".to_string(),
+                dialect: "postgres".to_string(),
+                table: "raw_events".to_string(),
+                schema_name: None,
+                connection: None,
+            });
+        let generator = ViewGenerator::new(WarehouseDialect::Postgres);
+        let sql = generator.generate_entity_view(&entity, &model);
+
+        assert!(sql.contains("FROM raw_events"));
     }
 }
 

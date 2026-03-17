@@ -176,6 +176,9 @@ fn semantic_attribute_strategy() -> impl Strategy<Value = SemanticAttribute> {
                     value_pattern,
                     is_observable,
                     threat_relevance,
+                    hierarchy: Vec::new(),
+                    is_hidden: false,
+                    folder: None,
                 }
             },
         )
@@ -198,6 +201,7 @@ fn entity_relationship_strategy() -> impl Strategy<Value = EntityRelationship> {
             cardinality,
             join_condition,
             description,
+            role_alias: None,
         })
 }
 
@@ -230,6 +234,7 @@ fn semantic_entity_strategy() -> impl Strategy<Value = SemanticEntity> {
                     attributes,
                     relationships,
                     covers_observables,
+                    dataset_ref: None,
                 }
             },
         )

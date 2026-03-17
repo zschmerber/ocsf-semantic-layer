@@ -4,13 +4,14 @@
 //! including field reference validation, metric determinism checks, and
 //! model versioning support.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use ocsf_core::OCSFSchema;
 use thiserror::Error;
 
+use crate::catalog::SemanticCatalog;
 use crate::entity::{SemanticAttribute, SemanticEntity};
-use crate::metric::SemanticMetric;
+use crate::metric::{extract_metric_references, SemanticMetric};
 use crate::model::SemanticModel;
 
 /// Validation error types.
@@ -59,6 +60,42 @@ pub enum ValidationError {
     /// Invalid dimension reference in metric.
     #[error("Metric '{metric}' references non-existent dimension '{dimension}'")]
     InvalidDimensionReference { metric: String, dimension: String },
+
+    /// Hierarchy attribute_ref not found in entity.
+    #[error("Hierarchy attribute_ref '{attribute_ref}' not found in entity '{entity}'")]
+    InvalidHierarchyRef { entity: String, attribute_ref: String },
+
+    /// Duplicate attribute_ref in hierarchy.
+    #[error("Duplicate attribute_ref '{attribute_ref}' in hierarchy of entity '{entity}'")]
+    DuplicateHierarchyRef { entity: String, attribute_ref: String },
+
+    /// Non-additive dimension does not reference a valid dimension.
+    #[error("Non-additive dimension '{dimension}' on metric '{metric}' does not reference a valid dimension")]
+    InvalidNonAdditiveDimension { metric: String, dimension: String },
+
+    /// Formula references unknown metric.
+    #[error("Formula in metric '{metric}' references unknown metric '{referenced}'")]
+    InvalidFormulaRef { metric: String, referenced: String },
+
+    /// Circular dependency in calculated metrics.
+    #[error("Circular dependency detected in calculated metric '{metric}'")]
+    CircularMetricDependency { metric: String },
+
+    /// Dataset ref not found in model datasets.
+    #[error("Dataset ref '{dataset_ref}' on entity '{entity}' not found in model datasets")]
+    InvalidDatasetRef { entity: String, dataset_ref: String },
+
+    /// Duplicate role alias required for multiple relationships to same target.
+    #[error("Duplicate role alias required: entity '{entity}' has multiple relationships to '{target}' without distinct role_alias")]
+    MissingRoleAlias { entity: String, target: String },
+
+    /// Duplicate model name in catalog.
+    #[error("Duplicate model name '{name}' in catalog")]
+    DuplicateCatalogModelName { name: String },
+
+    /// Catalog dependency not found.
+    #[error("Catalog dependency '{dependency}' for model '{model}' not found")]
+    InvalidCatalogDependency { model: String, dependency: String },
 }
 
 /// Result of validating a semantic model.
@@ -266,6 +303,12 @@ impl<'a> SemanticModelValidator<'a> {
             self.validate_metric(metric, &model.entities, &mut result);
         }
 
+        // Validate formula references and circular dependencies
+        self.validate_formula(model, &mut result);
+
+        // Validate dataset refs
+        self.validate_dataset_refs(model, &mut result);
+
         result
     }
 
@@ -313,6 +356,12 @@ impl<'a> SemanticModelValidator<'a> {
                 });
             }
         }
+
+        // Validate hierarchy attribute refs
+        self.validate_hierarchies(entity, result);
+
+        // Validate role alias uniqueness
+        self.validate_role_aliases(entity, result);
     }
 
     /// Validates an attribute's OCSF mapping.
@@ -390,6 +439,9 @@ impl<'a> SemanticModelValidator<'a> {
 
         // Validate dimension references
         self.validate_dimension_references(metric, entities, result);
+
+        // Validate metric type / non_additive_dimensions
+        self.validate_metric_type(metric, entities, result);
     }
 
     /// Validates that the aggregation is compatible with the measure.
@@ -441,6 +493,189 @@ impl<'a> SemanticModelValidator<'a> {
                     "Metric '{}' references dimension '{}' which is not marked as a dimension in any entity",
                     metric.name, dim
                 ));
+            }
+        }
+    }
+
+    /// Validates hierarchy attribute_ref resolution and uniqueness within an entity.
+    fn validate_hierarchies(&self, entity: &SemanticEntity, result: &mut ValidationResult) {
+        let attr_names: HashSet<_> = entity.attributes.iter().map(|a| a.name.as_str()).collect();
+
+        for attr in &entity.attributes {
+            let mut seen_refs = HashSet::new();
+            for level in &attr.hierarchy {
+                // Check attribute_ref resolves to an existing attribute
+                if !attr_names.contains(level.attribute_ref.as_str()) {
+                    result.add_error(ValidationError::InvalidHierarchyRef {
+                        entity: entity.name.clone(),
+                        attribute_ref: level.attribute_ref.clone(),
+                    });
+                }
+                // Check for duplicate attribute_ref within this hierarchy
+                if !seen_refs.insert(&level.attribute_ref) {
+                    result.add_error(ValidationError::DuplicateHierarchyRef {
+                        entity: entity.name.clone(),
+                        attribute_ref: level.attribute_ref.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    /// Validates metric type constraints: non_additive_dimensions reference valid dimensions.
+    fn validate_metric_type(
+        &self,
+        metric: &SemanticMetric,
+        entities: &[SemanticEntity],
+        result: &mut ValidationResult,
+    ) {
+        use crate::metric::MetricType;
+
+        if metric.metric_type == MetricType::SemiAdditive && metric.non_additive_dimensions.is_empty() {
+            result.add_warning(format!(
+                "Semi-additive metric '{}' has empty non_additive_dimensions",
+                metric.name
+            ));
+        }
+
+        if !metric.non_additive_dimensions.is_empty() {
+            // Collect all dimension attribute names across all entities
+            let all_dimensions: HashSet<_> = entities
+                .iter()
+                .flat_map(|e| e.dimensions())
+                .map(|a| a.name.as_str())
+                .collect();
+
+            for dim in &metric.non_additive_dimensions {
+                if !all_dimensions.contains(dim.as_str()) {
+                    result.add_error(ValidationError::InvalidNonAdditiveDimension {
+                        metric: metric.name.clone(),
+                        dimension: dim.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    /// Validates formula references exist and detects circular dependencies.
+    fn validate_formula(&self, model: &SemanticModel, result: &mut ValidationResult) {
+        let metric_names: HashSet<_> = model.metrics.iter().map(|m| m.name.as_str()).collect();
+
+        // Build dependency graph: metric_name -> list of referenced metric names (owned)
+        let mut deps: HashMap<String, Vec<String>> = HashMap::new();
+
+        for metric in &model.metrics {
+            if let Some(ref formula) = metric.formula {
+                let refs = extract_metric_references(formula);
+                let mut valid_refs = Vec::new();
+                for r in &refs {
+                    if !metric_names.contains(r.as_str()) {
+                        result.add_error(ValidationError::InvalidFormulaRef {
+                            metric: metric.name.clone(),
+                            referenced: r.clone(),
+                        });
+                    } else {
+                        valid_refs.push(r.clone());
+                    }
+                }
+                deps.insert(metric.name.clone(), valid_refs);
+            }
+        }
+
+        // DFS-based circular dependency detection
+        let mut visited: HashSet<String> = HashSet::new();
+        let mut on_stack: HashSet<String> = HashSet::new();
+
+        let keys: Vec<String> = deps.keys().cloned().collect();
+        for metric_name in &keys {
+            if !visited.contains(metric_name) {
+                self.detect_cycle(metric_name, &deps, &mut visited, &mut on_stack, result);
+            }
+        }
+    }
+
+    /// DFS helper for circular dependency detection.
+    fn detect_cycle(
+        &self,
+        node: &str,
+        deps: &HashMap<String, Vec<String>>,
+        visited: &mut HashSet<String>,
+        on_stack: &mut HashSet<String>,
+        result: &mut ValidationResult,
+    ) {
+        visited.insert(node.to_string());
+        on_stack.insert(node.to_string());
+
+        if let Some(neighbors) = deps.get(node) {
+            for neighbor in neighbors {
+                if !visited.contains(neighbor.as_str()) {
+                    self.detect_cycle(neighbor, deps, visited, on_stack, result);
+                } else if on_stack.contains(neighbor.as_str()) {
+                    result.add_error(ValidationError::CircularMetricDependency {
+                        metric: neighbor.clone(),
+                    });
+                }
+            }
+        }
+
+        on_stack.remove(node);
+    }
+
+    /// Validates that every entity's dataset_ref resolves to a dataset in the model.
+    fn validate_dataset_refs(&self, model: &SemanticModel, result: &mut ValidationResult) {
+        let dataset_names: HashSet<_> = model.datasets.iter().map(|d| d.name.as_str()).collect();
+
+        for entity in &model.entities {
+            if let Some(ref dataset_ref) = entity.dataset_ref {
+                if !dataset_names.contains(dataset_ref.as_str()) {
+                    result.add_error(ValidationError::InvalidDatasetRef {
+                        entity: entity.name.clone(),
+                        dataset_ref: dataset_ref.clone(),
+                    });
+                }
+            }
+        }
+    }
+
+    /// Validates that relationships to the same target entity have distinct role_alias values.
+    fn validate_role_aliases(&self, entity: &SemanticEntity, result: &mut ValidationResult) {
+        // Group relationships by target entity
+        let mut target_groups: HashMap<&str, Vec<Option<&str>>> = HashMap::new();
+        for rel in &entity.relationships {
+            target_groups
+                .entry(&rel.target_entity)
+                .or_default()
+                .push(rel.role_alias.as_deref());
+        }
+
+        for (target, aliases) in &target_groups {
+            if aliases.len() > 1 {
+                // Check that all have distinct role_alias values
+                let mut seen = HashSet::new();
+                let mut has_missing = false;
+                for alias in aliases {
+                    match alias {
+                        Some(a) => {
+                            if !seen.insert(*a) {
+                                // Duplicate alias
+                                result.add_error(ValidationError::MissingRoleAlias {
+                                    entity: entity.name.clone(),
+                                    target: target.to_string(),
+                                });
+                                break;
+                            }
+                        }
+                        None => {
+                            has_missing = true;
+                        }
+                    }
+                }
+                if has_missing {
+                    result.add_error(ValidationError::MissingRoleAlias {
+                        entity: entity.name.clone(),
+                        target: target.to_string(),
+                    });
+                }
             }
         }
     }
@@ -632,6 +867,38 @@ pub fn check_non_deterministic(expression: &str) -> Option<String> {
     None
 }
 
+/// Validates a semantic catalog for dependency consistency and uniqueness.
+///
+/// This is a standalone function, not a method on `SemanticModelValidator`.
+pub fn validate_catalog(catalog: &SemanticCatalog) -> ValidationResult {
+    let mut result = ValidationResult::new();
+
+    // Check for duplicate model names
+    let mut seen_names = HashSet::new();
+    for entry in &catalog.models {
+        if !seen_names.insert(&entry.model_name) {
+            result.add_error(ValidationError::DuplicateCatalogModelName {
+                name: entry.model_name.clone(),
+            });
+        }
+    }
+
+    // Verify dependencies reference existing model names
+    let all_model_names: HashSet<_> = catalog.models.iter().map(|e| e.model_name.as_str()).collect();
+    for entry in &catalog.models {
+        for dep in &entry.dependencies {
+            if !all_model_names.contains(dep.as_str()) {
+                result.add_error(ValidationError::InvalidCatalogDependency {
+                    model: entry.model_name.clone(),
+                    dependency: dep.clone(),
+                });
+            }
+        }
+    }
+
+    result
+}
+
 /// Validates a single entity against the schema.
 ///
 /// This is a convenience function for validating a single entity without
@@ -665,8 +932,10 @@ pub fn validate_metric(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entity::{EntityRelationship, SemanticAttribute};
-    use crate::metric::Aggregation;
+    use crate::catalog::{CatalogEntry, SemanticCatalog};
+    use crate::entity::{EntityRelationship, HierarchyLevel, SemanticAttribute};
+    use crate::metric::{Aggregation, MetricType};
+    use crate::model::Dataset;
     use ocsf_core::{Attribute, Category, EventClass, OCSFObject, Requirement};
     use std::collections::HashMap;
 
@@ -1172,5 +1441,377 @@ mod tests {
 
         assert_eq!(result1.errors.len(), 2);
         assert_eq!(result1.warnings.len(), 2);
+    }
+
+    // --- Hierarchy validation tests ---
+
+    #[test]
+    fn test_invalid_hierarchy_ref_detected() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("net_activity")
+            .add_attribute(
+                SemanticAttribute::new("country")
+                    .as_dimension()
+                    .with_hierarchy(vec![
+                        HierarchyLevel { name: "Country".into(), attribute_ref: "country".into() },
+                        HierarchyLevel { name: "City".into(), attribute_ref: "nonexistent".into() },
+                    ]),
+            );
+
+        let model = SemanticModel::new("test").add_entity(entity);
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidHierarchyRef { attribute_ref, .. } if attribute_ref == "nonexistent"
+        )));
+    }
+
+    #[test]
+    fn test_duplicate_hierarchy_ref_detected() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("net_activity")
+            .add_attribute(
+                SemanticAttribute::new("country")
+                    .as_dimension()
+                    .with_hierarchy(vec![
+                        HierarchyLevel { name: "Level1".into(), attribute_ref: "country".into() },
+                        HierarchyLevel { name: "Level2".into(), attribute_ref: "country".into() },
+                    ]),
+            );
+
+        let model = SemanticModel::new("test").add_entity(entity);
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::DuplicateHierarchyRef { attribute_ref, .. } if attribute_ref == "country"
+        )));
+    }
+
+    #[test]
+    fn test_valid_hierarchy_passes() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("net_activity")
+            .add_attribute(SemanticAttribute::new("country").as_dimension())
+            .add_attribute(SemanticAttribute::new("region").as_dimension())
+            .add_attribute(
+                SemanticAttribute::new("geo")
+                    .as_dimension()
+                    .with_hierarchy(vec![
+                        HierarchyLevel { name: "Country".into(), attribute_ref: "country".into() },
+                        HierarchyLevel { name: "Region".into(), attribute_ref: "region".into() },
+                    ]),
+            );
+
+        let model = SemanticModel::new("test").add_entity(entity);
+        let result = validator.validate(&model);
+
+        assert!(result.is_valid(), "Expected valid, got errors: {:?}", result.errors);
+    }
+
+    // --- Metric type validation tests ---
+
+    #[test]
+    fn test_invalid_non_additive_dimension() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("events")
+            .add_attribute(SemanticAttribute::new("severity").as_dimension());
+
+        let metric = SemanticMetric::new("sessions")
+            .with_metric_type(MetricType::SemiAdditive)
+            .with_non_additive_dimensions(vec!["nonexistent_dim".into()]);
+
+        let model = SemanticModel::new("test")
+            .add_entity(entity)
+            .add_metric(metric);
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidNonAdditiveDimension { dimension, .. } if dimension == "nonexistent_dim"
+        )));
+    }
+
+    #[test]
+    fn test_semi_additive_empty_non_additive_warning() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let metric = SemanticMetric::new("sessions")
+            .with_metric_type(MetricType::SemiAdditive);
+
+        let model = SemanticModel::new("test").add_metric(metric);
+        let result = validator.validate(&model);
+
+        assert!(!result.warnings.is_empty());
+        assert!(result.warnings.iter().any(|w| w.contains("empty non_additive_dimensions")));
+    }
+
+    // --- Formula validation tests ---
+
+    #[test]
+    fn test_invalid_formula_ref() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let metric = SemanticMetric::new("ratio")
+            .with_formula("success_count / nonexistent_metric");
+
+        let model = SemanticModel::new("test").add_metric(metric);
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidFormulaRef { referenced, .. } if referenced == "success_count"
+        )));
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidFormulaRef { referenced, .. } if referenced == "nonexistent_metric"
+        )));
+    }
+
+    #[test]
+    fn test_circular_metric_dependency() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let metric_a = SemanticMetric::new("metric_a")
+            .with_formula("metric_b * 2");
+        let metric_b = SemanticMetric::new("metric_b")
+            .with_formula("metric_a + 1");
+
+        let model = SemanticModel::new("test")
+            .add_metric(metric_a)
+            .add_metric(metric_b);
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::CircularMetricDependency { .. }
+        )));
+    }
+
+    #[test]
+    fn test_valid_formula_passes() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let base_metric = SemanticMetric::new("total_count")
+            .with_aggregation(Aggregation::Count)
+            .with_field_measure("metadata.uid");
+        let success_metric = SemanticMetric::new("success_count")
+            .with_aggregation(Aggregation::Count)
+            .with_field_measure("metadata.uid");
+        let ratio = SemanticMetric::new("success_rate")
+            .with_formula("success_count / total_count");
+
+        let model = SemanticModel::new("test")
+            .add_metric(base_metric)
+            .add_metric(success_metric)
+            .add_metric(ratio);
+        let result = validator.validate(&model);
+
+        // Should have no formula-related errors
+        assert!(!result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidFormulaRef { .. } | ValidationError::CircularMetricDependency { .. }
+        )));
+    }
+
+    // --- Dataset ref validation tests ---
+
+    #[test]
+    fn test_invalid_dataset_ref() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("events")
+            .with_dataset_ref("nonexistent_dataset");
+
+        let model = SemanticModel::new("test").add_entity(entity);
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidDatasetRef { dataset_ref, .. } if dataset_ref == "nonexistent_dataset"
+        )));
+    }
+
+    #[test]
+    fn test_valid_dataset_ref_passes() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("events")
+            .with_dataset_ref("prod_warehouse");
+
+        let model = SemanticModel::new("test")
+            .add_entity(entity)
+            .add_dataset(Dataset {
+                name: "prod_warehouse".into(),
+                dialect: "snowflake".into(),
+                table: "ocsf_events".into(),
+                schema_name: None,
+                connection: None,
+            });
+        let result = validator.validate(&model);
+
+        assert!(!result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidDatasetRef { .. }
+        )));
+    }
+
+    // --- Role alias validation tests ---
+
+    #[test]
+    fn test_missing_role_alias() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("auth_event")
+            .add_relationship(EntityRelationship::new(
+                "source_user", "user_entity", "{from}.src_uid = user_entity.uid",
+            ))
+            .add_relationship(EntityRelationship::new(
+                "target_user", "user_entity", "{from}.tgt_uid = user_entity.uid",
+            ));
+
+        // Need user_entity to exist so we don't get InvalidRelationshipTarget errors
+        let model = SemanticModel::new("test")
+            .add_entity(entity)
+            .add_entity(SemanticEntity::new("user_entity"));
+        let result = validator.validate(&model);
+
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::MissingRoleAlias { target, .. } if target == "user_entity"
+        )));
+    }
+
+    #[test]
+    fn test_valid_role_aliases() {
+        let schema = create_test_schema();
+        let validator = SemanticModelValidator::new(&schema);
+
+        let entity = SemanticEntity::new("auth_event")
+            .add_relationship(
+                EntityRelationship::new(
+                    "source_user", "user_entity", "{from}.src_uid = user_entity.uid",
+                ).with_role_alias("src_user"),
+            )
+            .add_relationship(
+                EntityRelationship::new(
+                    "target_user", "user_entity", "{from}.tgt_uid = user_entity.uid",
+                ).with_role_alias("tgt_user"),
+            );
+
+        let model = SemanticModel::new("test")
+            .add_entity(entity)
+            .add_entity(SemanticEntity::new("user_entity"));
+        let result = validator.validate(&model);
+
+        assert!(!result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::MissingRoleAlias { .. }
+        )));
+    }
+
+    // --- Catalog validation tests ---
+
+    #[test]
+    fn test_catalog_duplicate_model_name() {
+        let catalog = SemanticCatalog {
+            name: "test".into(),
+            version: "1.0".into(),
+            description: None,
+            models: vec![
+                CatalogEntry {
+                    model_name: "model_a".into(),
+                    path: "a.yaml".into(),
+                    version: "1.0".into(),
+                    dependencies: vec![],
+                },
+                CatalogEntry {
+                    model_name: "model_a".into(),
+                    path: "a2.yaml".into(),
+                    version: "2.0".into(),
+                    dependencies: vec![],
+                },
+            ],
+        };
+
+        let result = validate_catalog(&catalog);
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::DuplicateCatalogModelName { name } if name == "model_a"
+        )));
+    }
+
+    #[test]
+    fn test_catalog_invalid_dependency() {
+        let catalog = SemanticCatalog {
+            name: "test".into(),
+            version: "1.0".into(),
+            description: None,
+            models: vec![
+                CatalogEntry {
+                    model_name: "model_a".into(),
+                    path: "a.yaml".into(),
+                    version: "1.0".into(),
+                    dependencies: vec!["nonexistent_model".into()],
+                },
+            ],
+        };
+
+        let result = validate_catalog(&catalog);
+        assert!(!result.is_valid());
+        assert!(result.errors.iter().any(|e| matches!(
+            e,
+            ValidationError::InvalidCatalogDependency { dependency, .. } if dependency == "nonexistent_model"
+        )));
+    }
+
+    #[test]
+    fn test_valid_catalog() {
+        let catalog = SemanticCatalog {
+            name: "test".into(),
+            version: "1.0".into(),
+            description: Some("Test catalog".into()),
+            models: vec![
+                CatalogEntry {
+                    model_name: "model_a".into(),
+                    path: "a.yaml".into(),
+                    version: "1.0".into(),
+                    dependencies: vec![],
+                },
+                CatalogEntry {
+                    model_name: "model_b".into(),
+                    path: "b.yaml".into(),
+                    version: "1.0".into(),
+                    dependencies: vec!["model_a".into()],
+                },
+            ],
+        };
+
+        let result = validate_catalog(&catalog);
+        assert!(result.is_valid(), "Expected valid catalog, got errors: {:?}", result.errors);
     }
 }

@@ -84,8 +84,9 @@ proptest! {
         dialect in dialect_strategy(),
         entity in entity_strategy()
     ) {
+        let model = SemanticModel::new("prop_test").add_entity(entity.clone());
         let generator = ViewGenerator::new(dialect);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         // Verify basic SQL structure
         prop_assert!(
@@ -102,8 +103,9 @@ proptest! {
         dialect in dialect_strategy(),
         entity in entity_strategy()
     ) {
+        let model = SemanticModel::new("prop_test").add_entity(entity.clone());
         let generator = ViewGenerator::new(dialect);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         let sql_upper = sql.to_uppercase();
         prop_assert!(
@@ -118,8 +120,9 @@ proptest! {
         dialect in dialect_strategy(),
         entity in entity_strategy()
     ) {
+        let model = SemanticModel::new("prop_test").add_entity(entity.clone());
         let generator = ViewGenerator::new(dialect);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         let sql_upper = sql.to_uppercase();
         prop_assert!(sql_upper.contains("SELECT"), "SQL should contain SELECT");
@@ -132,27 +135,31 @@ proptest! {
         dialect in dialect_strategy(),
         entity in entity_strategy()
     ) {
+        let model = SemanticModel::new("prop_test").add_entity(entity.clone());
         let generator = ViewGenerator::new(dialect);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         prop_assert!(sql.ends_with(';'), "SQL should end with semicolon");
     }
 
-    /// Property: View should include all entity attributes.
+    /// Property: View should include all visible entity attributes.
     #[test]
     fn prop_view_includes_all_attributes(
         dialect in dialect_strategy(),
         entity in entity_strategy()
     ) {
+        let model = SemanticModel::new("prop_test").add_entity(entity.clone());
         let generator = ViewGenerator::new(dialect);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         for attr in &entity.attributes {
-            prop_assert!(
-                sql.contains(&attr.name),
-                "SQL should include attribute: {}",
-                attr.name
-            );
+            if !attr.is_hidden {
+                prop_assert!(
+                    sql.contains(&attr.name),
+                    "SQL should include visible attribute: {}",
+                    attr.name
+                );
+            }
         }
     }
 
@@ -162,8 +169,9 @@ proptest! {
         dialect in dialect_strategy(),
         entity in entity_strategy()
     ) {
+        let model = SemanticModel::new("prop_test").add_entity(entity.clone());
         let generator = ViewGenerator::new(dialect);
-        let sql = generator.generate_entity_view(&entity);
+        let sql = generator.generate_entity_view(&entity, &model);
 
         if !entity.source_event_classes.is_empty() {
             prop_assert!(

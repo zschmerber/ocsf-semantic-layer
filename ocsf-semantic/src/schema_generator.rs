@@ -7,6 +7,8 @@ use crate::{
     DefaultDimensionInferrer, DimensionInferrer, FieldPath, OCSFMapping, ObservableConfig,
     PathGenerator, SemanticAttribute, SemanticEntity, SemanticModel, SemanticType,
 };
+use crate::entity::HierarchyLevel;
+use crate::metric::MetricType;
 use ocsf_core::{CompiledAttribute, CompiledClass, CompiledObject, CompiledRequirement, CompiledSchema};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -305,6 +307,9 @@ impl<'a> SchemaGenerator<'a> {
             return None;
         }
 
+        // Task 7.2: Infer geographic hierarchy from attribute names (best-effort)
+        Self::infer_geographic_hierarchy(&mut attributes);
+
         let entity = SemanticEntity::new(name)
             .with_caption(object.caption.clone())
             .with_description(object.description.clone())
@@ -316,6 +321,45 @@ impl<'a> SchemaGenerator<'a> {
             source_class_uid: None,
             source_category: None,
         })
+    }
+
+    /// Infer geographic hierarchy from attribute names.
+    ///
+    /// When attributes contain geographic field name patterns (country, region, city, state, continent),
+    /// generates a HierarchyLevel chain on the top-level geographic attribute.
+    /// Best-effort: silently skips if no patterns match.
+    fn infer_geographic_hierarchy(attributes: &mut [SemanticAttribute]) {
+        // Geographic hierarchy order: continent > country > region/state > city
+        let geo_patterns: &[(&str, &str)] = &[
+            ("continent", "Continent"),
+            ("country", "Country"),
+            ("region", "Region"),
+            ("state", "State"),
+            ("city", "City"),
+        ];
+
+        // Find which geographic attributes exist
+        let mut found_levels: Vec<HierarchyLevel> = Vec::new();
+        for &(pattern, display_name) in geo_patterns {
+            if let Some(attr) = attributes.iter().find(|a| a.name.contains(pattern)) {
+                found_levels.push(HierarchyLevel {
+                    name: display_name.to_string(),
+                    attribute_ref: attr.name.clone(),
+                });
+            }
+        }
+
+        // Need at least 2 levels for a meaningful hierarchy
+        if found_levels.len() < 2 {
+            return;
+        }
+
+        // Attach hierarchy to the first (top-level) geographic attribute
+        let top_attr_name = found_levels[0].attribute_ref.clone();
+        if let Some(attr) = attributes.iter_mut().find(|a| a.name == top_attr_name) {
+            attr.hierarchy = found_levels;
+            attr.is_dimension = true;
+        }
     }
 
     fn generate_class_entity(
@@ -652,11 +696,13 @@ impl<'a> MetricSuggester<'a> {
         let default_dims = self.get_default_dimensions(class);
 
         // Always suggest event count
+        // Task 7.1: Count → Additive
         metrics.push(
             crate::SemanticMetric::new(format!("{}_count", class_name))
                 .with_caption(format!("{} Count", class.caption))
                 .with_description(format!("Count of {} events", class.caption))
                 .with_aggregation(crate::Aggregation::Count)
+                .with_metric_type(MetricType::Additive)
                 .with_field_measure("metadata.uid")
                 .with_dimensions(default_dims.clone())
                 .with_time_granularities(vec![
@@ -668,11 +714,13 @@ impl<'a> MetricSuggester<'a> {
 
         // Check for duration attribute
         if class.attributes.contains_key("duration") {
+            // Task 7.1: Avg → NonAdditive
             metrics.push(
                 crate::SemanticMetric::new(format!("{}_avg_duration", class_name))
                     .with_caption(format!("Average {} Duration", class.caption))
                     .with_description(format!("Average duration of {} events", class.caption))
                     .with_aggregation(crate::Aggregation::Avg)
+                    .with_metric_type(MetricType::NonAdditive)
                     .with_field_measure("duration")
                     .with_dimensions(default_dims.clone())
                     .with_time_granularities(vec![
@@ -684,12 +732,66 @@ impl<'a> MetricSuggester<'a> {
 
         // Check for status_id (success/failure rate)
         if class.attributes.contains_key("status_id") {
+            // Task 7.1: Avg → NonAdditive
             metrics.push(
                 crate::SemanticMetric::new(format!("{}_success_rate", class_name))
                     .with_caption(format!("{} Success Rate", class.caption))
                     .with_description(format!("Success rate of {} events", class.caption))
                     .with_aggregation(crate::Aggregation::Avg)
+                    .with_metric_type(MetricType::NonAdditive)
                     .with_expression_measure("CASE WHEN status_id = 1 THEN 1.0 ELSE 0.0 END")
+                    .with_dimensions(default_dims.clone())
+                    .with_time_granularities(vec![
+                        crate::TimeGranularity::Hour,
+                        crate::TimeGranularity::Day,
+                    ]),
+            );
+
+            // Task 7.3: Generate calculated success rate metric
+            // Base metric: success_count (Count of successful events)
+            metrics.push(
+                crate::SemanticMetric::new(format!("{}_success_count", class_name))
+                    .with_caption(format!("{} Success Count", class.caption))
+                    .with_description(format!("Count of successful {} events", class.caption))
+                    .with_aggregation(crate::Aggregation::Count)
+                    .with_metric_type(MetricType::Additive)
+                    .with_expression_measure("CASE WHEN status_id = 1 THEN 1 END")
+                    .with_dimensions(default_dims.clone())
+                    .with_time_granularities(vec![
+                        crate::TimeGranularity::Hour,
+                        crate::TimeGranularity::Day,
+                    ]),
+            );
+
+            // Base metric: total_count (Count of all events)
+            metrics.push(
+                crate::SemanticMetric::new(format!("{}_total_count", class_name))
+                    .with_caption(format!("{} Total Count", class.caption))
+                    .with_description(format!("Total count of {} events", class.caption))
+                    .with_aggregation(crate::Aggregation::Count)
+                    .with_metric_type(MetricType::Additive)
+                    .with_field_measure("metadata.uid")
+                    .with_dimensions(default_dims.clone())
+                    .with_time_granularities(vec![
+                        crate::TimeGranularity::Hour,
+                        crate::TimeGranularity::Day,
+                    ]),
+            );
+
+            // Calculated metric: success_rate derived from the two base metrics
+            metrics.push(
+                crate::SemanticMetric::new(format!("{}_calculated_success_rate", class_name))
+                    .with_caption(format!("{} Calculated Success Rate", class.caption))
+                    .with_description(format!(
+                        "Calculated success rate of {} events (success_count / total_count)",
+                        class.caption
+                    ))
+                    .with_aggregation(crate::Aggregation::Avg)
+                    .with_metric_type(MetricType::NonAdditive)
+                    .with_formula(format!(
+                        "{}_success_count / {}_total_count",
+                        class_name, class_name
+                    ))
                     .with_dimensions(default_dims.clone())
                     .with_time_granularities(vec![
                         crate::TimeGranularity::Hour,
@@ -700,6 +802,7 @@ impl<'a> MetricSuggester<'a> {
 
         // Check for severity_id
         if class.attributes.contains_key("severity_id") {
+            // Task 7.1: Count → Additive
             metrics.push(
                 crate::SemanticMetric::new(format!("{}_high_severity_count", class_name))
                     .with_caption(format!("High Severity {} Count", class.caption))
@@ -708,6 +811,7 @@ impl<'a> MetricSuggester<'a> {
                         class.caption
                     ))
                     .with_aggregation(crate::Aggregation::Count)
+                    .with_metric_type(MetricType::Additive)
                     .with_expression_measure("CASE WHEN severity_id >= 4 THEN 1 END")
                     .with_dimensions(default_dims.clone())
                     .with_time_granularities(vec![
@@ -719,11 +823,13 @@ impl<'a> MetricSuggester<'a> {
 
         // Check for disposition_id
         if class.attributes.contains_key("disposition_id") {
+            // Task 7.1: Count → Additive
             metrics.push(
                 crate::SemanticMetric::new(format!("{}_blocked_count", class_name))
                     .with_caption(format!("Blocked {} Count", class.caption))
                     .with_description(format!("Count of blocked {} events", class.caption))
                     .with_aggregation(crate::Aggregation::Count)
+                    .with_metric_type(MetricType::Additive)
                     .with_expression_measure("CASE WHEN disposition_id = 2 THEN 1 END")
                     .with_dimensions(default_dims)
                     .with_time_granularities(vec![
@@ -903,5 +1009,171 @@ mod metric_suggester_tests {
 
         let metrics = suggester.suggest_metrics("nonexistent");
         assert!(metrics.is_empty());
+    }
+
+    #[test]
+    fn test_metric_type_based_on_aggregation() {
+        let schema = create_class_with_status();
+        let suggester = MetricSuggester::new(&schema);
+
+        let metrics = suggester.suggest_metrics("authentication");
+
+        // Count metrics should be Additive
+        let count = metrics.iter().find(|m| m.name == "authentication_count").unwrap();
+        assert_eq!(count.metric_type, MetricType::Additive);
+
+        let severity = metrics.iter().find(|m| m.name == "authentication_high_severity_count").unwrap();
+        assert_eq!(severity.metric_type, MetricType::Additive);
+
+        // Avg metrics should be NonAdditive
+        let success_rate = metrics.iter().find(|m| m.name == "authentication_success_rate").unwrap();
+        assert_eq!(success_rate.metric_type, MetricType::NonAdditive);
+    }
+
+    #[test]
+    fn test_calculated_success_rate_metric() {
+        let schema = create_class_with_status();
+        let suggester = MetricSuggester::new(&schema);
+
+        let metrics = suggester.suggest_metrics("authentication");
+
+        // Should have success_count base metric
+        let success_count = metrics.iter().find(|m| m.name == "authentication_success_count");
+        assert!(success_count.is_some());
+        let sc = success_count.unwrap();
+        assert_eq!(sc.aggregation, crate::Aggregation::Count);
+        assert_eq!(sc.metric_type, MetricType::Additive);
+        assert!(sc.measure.expression.is_some());
+
+        // Should have total_count base metric
+        let total_count = metrics.iter().find(|m| m.name == "authentication_total_count");
+        assert!(total_count.is_some());
+        let tc = total_count.unwrap();
+        assert_eq!(tc.aggregation, crate::Aggregation::Count);
+        assert_eq!(tc.metric_type, MetricType::Additive);
+
+        // Should have calculated success rate metric with formula
+        let calc = metrics.iter().find(|m| m.name == "authentication_calculated_success_rate");
+        assert!(calc.is_some());
+        let calc = calc.unwrap();
+        assert_eq!(calc.metric_type, MetricType::NonAdditive);
+        assert!(calc.is_calculated());
+        assert_eq!(
+            calc.formula.as_deref(),
+            Some("authentication_success_count / authentication_total_count")
+        );
+    }
+
+    #[test]
+    fn test_geographic_hierarchy_inference() {
+        let mut schema = CompiledSchema::default();
+        schema.version = "1.6.0".to_string();
+
+        let mut attrs = std::collections::HashMap::new();
+        for (name, caption) in &[("country", "Country"), ("region", "Region"), ("city", "City")] {
+            attrs.insert(
+                name.to_string(),
+                CompiledAttribute {
+                    caption: caption.to_string(),
+                    description: format!("{} field", caption),
+                    attr_type: "string_t".to_string(),
+                    type_name: "String".to_string(),
+                    requirement: CompiledRequirement::Optional,
+                    group: None,
+                    object_type: None,
+                    object_name: None,
+                    is_array: false,
+                    enum_values: std::collections::HashMap::new(),
+                    observable: None,
+                    sibling: None,
+                    profiles: None,
+                    deprecated: None,
+                },
+            );
+        }
+
+        schema.objects.insert(
+            "location".to_string(),
+            CompiledObject {
+                name: "location".to_string(),
+                caption: "Location".to_string(),
+                description: "Geographic location".to_string(),
+                extends: None,
+                attributes: attrs,
+            },
+        );
+
+        let config = GenerationConfig {
+            object_filter: vec!["location".to_string()],
+            ..Default::default()
+        };
+        let generator = SchemaGenerator::new(&schema, config);
+        let entities = generator.generate_from_objects();
+
+        assert_eq!(entities.len(), 1);
+        let entity = &entities[0].entity;
+
+        // The country attribute should have a hierarchy with country → region → city
+        let country_attr = entity.get_attribute("country").unwrap();
+        assert!(!country_attr.hierarchy.is_empty());
+        assert!(country_attr.is_dimension);
+        assert_eq!(country_attr.hierarchy.len(), 3);
+        assert_eq!(country_attr.hierarchy[0].name, "Country");
+        assert_eq!(country_attr.hierarchy[0].attribute_ref, "country");
+        assert_eq!(country_attr.hierarchy[1].name, "Region");
+        assert_eq!(country_attr.hierarchy[1].attribute_ref, "region");
+        assert_eq!(country_attr.hierarchy[2].name, "City");
+        assert_eq!(country_attr.hierarchy[2].attribute_ref, "city");
+    }
+
+    #[test]
+    fn test_no_hierarchy_when_insufficient_geo_fields() {
+        let mut schema = CompiledSchema::default();
+        schema.version = "1.6.0".to_string();
+
+        let mut attrs = std::collections::HashMap::new();
+        attrs.insert(
+            "country".to_string(),
+            CompiledAttribute {
+                caption: "Country".to_string(),
+                description: "Country field".to_string(),
+                attr_type: "string_t".to_string(),
+                type_name: "String".to_string(),
+                requirement: CompiledRequirement::Optional,
+                group: None,
+                object_type: None,
+                object_name: None,
+                is_array: false,
+                enum_values: std::collections::HashMap::new(),
+                observable: None,
+                sibling: None,
+                profiles: None,
+                deprecated: None,
+            },
+        );
+
+        schema.objects.insert(
+            "simple_loc".to_string(),
+            CompiledObject {
+                name: "simple_loc".to_string(),
+                caption: "Simple Location".to_string(),
+                description: "Location with only one geo field".to_string(),
+                extends: None,
+                attributes: attrs,
+            },
+        );
+
+        let config = GenerationConfig {
+            object_filter: vec!["simple_loc".to_string()],
+            ..Default::default()
+        };
+        let generator = SchemaGenerator::new(&schema, config);
+        let entities = generator.generate_from_objects();
+
+        assert_eq!(entities.len(), 1);
+        let entity = &entities[0].entity;
+        let country_attr = entity.get_attribute("country").unwrap();
+        // Only one geo field — no hierarchy should be generated
+        assert!(country_attr.hierarchy.is_empty());
     }
 }

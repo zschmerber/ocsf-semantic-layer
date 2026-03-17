@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { SemanticEntity, ClassNode } from '../../types';
+import type { SemanticEntity, ClassNode, Dataset } from '../../types';
 import { createDefaultEntity } from '../../types';
 
 // ============================================
@@ -17,6 +17,7 @@ import { createDefaultEntity } from '../../types';
 export interface EntityFormProps {
   entity?: SemanticEntity;
   availableClasses: ClassNode[];
+  datasets?: Dataset[];
   onSave: (entity: SemanticEntity) => void;
   onCancel: () => void;
 }
@@ -28,6 +29,7 @@ export interface EntityFormProps {
 export function EntityForm({
   entity,
   availableClasses,
+  datasets = [],
   onSave,
   onCancel,
 }: EntityFormProps) {
@@ -42,6 +44,7 @@ export function EntityForm({
   );
   const [classSearchQuery, setClassSearchQuery] = useState('');
   const [showClassDropdown, setShowClassDropdown] = useState(false);
+  const [datasetRef, setDatasetRef] = useState(entity?.dataset_ref ?? '');
   
   // Validation
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -96,17 +99,19 @@ export function EntityForm({
             caption: caption.trim(),
             description: description.trim(),
             source_event_classes: selectedClasses,
+            dataset_ref: datasetRef || undefined,
           }
         : {
             ...createDefaultEntity(name.trim()),
             caption: caption.trim(),
             description: description.trim(),
             source_event_classes: selectedClasses,
+            dataset_ref: datasetRef || undefined,
           };
       
       onSave(newEntity);
     },
-    [entity, name, caption, description, selectedClasses, validateForm, onSave]
+    [entity, name, caption, description, selectedClasses, datasetRef, validateForm, onSave]
   );
   
   const handleClassToggle = useCallback((classUid: number) => {
@@ -199,6 +204,28 @@ export function EntityForm({
             rows={3}
           />
         </div>
+        
+        {/* Dataset Reference */}
+        {datasets.length > 0 && (
+          <div className="form-group">
+            <label className="form-label" htmlFor="entity-dataset-ref">
+              Dataset Reference
+            </label>
+            <select
+              id="entity-dataset-ref"
+              className="form-select"
+              value={datasetRef}
+              onChange={(e) => setDatasetRef(e.target.value)}
+            >
+              <option value="">None</option>
+              {datasets.map((ds) => (
+                <option key={ds.name} value={ds.name}>
+                  {ds.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         
         {/* Event Class Multi-Select */}
         <div className="form-group">

@@ -4,6 +4,7 @@
 //! for building a semantic layer on top of OCSF physical schema.
 
 pub mod analyzer;
+pub mod catalog;
 pub mod computed_fields;
 pub mod dimension_inference;
 pub mod dns_templates;
@@ -35,7 +36,15 @@ mod analyzer_proptest;
 #[cfg(test)]
 mod query_proptest;
 
+/// Serde helper: returns `true` when the value is `false`.
+/// Used with `#[serde(skip_serializing_if = "crate::is_false")]` to omit
+/// default-false boolean fields from serialized output.
+pub fn is_false(v: &bool) -> bool {
+    !v
+}
+
 pub use analyzer::*;
+pub use catalog::*;
 pub use computed_fields::*;
 pub use dimension_inference::*;
 pub use dns_templates::*;

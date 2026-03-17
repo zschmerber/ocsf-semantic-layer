@@ -1349,3 +1349,214 @@
   align-items: center;
   gap: var(--spacing-sm);
 }
+
+
+/* ============================================
+   Hidden Badge & Dimmed Items
+   Requirements: 8.8
+   ============================================ */
+
+.hidden-badge {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  background: rgba(139, 148, 158, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: var(--spacing-xs);
+}
+
+.attribute-item.is-hidden {
+  opacity: 0.55;
+}
+
+.attribute-item.is-hidden .attribute-name {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Hierarchy Level Editor
+   Requirements: 8.3
+   ============================================ */
+
+.hierarchy-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.hierarchy-level-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.hierarchy-level-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--accent-purple);
+  background: rgba(163, 113, 247, 0.15);
+  border-radius: 50%;
+}
+
+.hierarchy-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.hierarchy-level-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.hierarchy-level-actions .btn-icon {
+  width: 24px;
+  height: 24px;
+  font-size: var(--font-xs);
+}
+
+.hierarchy-level-actions .btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.hierarchy-add-btn {
+  align-self: flex-start;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-xs);
+  background: transparent;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--accent-purple);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.hierarchy-add-btn:hover {
+  background: rgba(163, 113, 247, 0.1);
+  border-color: var(--accent-purple);
+}
+
+
+/* ============================================
+   Relationships Section
+   Requirements: 8.7
+   ============================================ */
+
+.relationships-section {
+  margin-top: var(--spacing-lg);
+}
+
+.relationships-section-title {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.relationships-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.relationship-item {
+  padding: var(--spacing-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.relationship-item-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.relationship-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.relationship-cardinality-badge {
+  font-size: var(--font-xs);
+  color: var(--accent-purple);
+  background: rgba(163, 113, 247, 0.15);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.relationship-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.relationship-target code,
+.relationship-join code {
+  color: var(--accent-cyan);
+  background: var(--bg-secondary);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.relationship-role-alias {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.relationship-role-alias-label {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.relationship-role-alias-input {
+  max-width: 200px;
+  padding: var(--spacing-xs) var(--spacing-sm) !important;
+  font-size: var(--font-sm) !important;
+}
+
+/* ============================================
+   Folder Grouping
+   Requirements: 8.9
+   ============================================ */
+
+.folder-group-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.folder-group-icon {
+  font-size: var(--font-sm);
+}
+
+.folder-group-count {
+  font-weight: 400;
+  color: var(--text-muted);
+}

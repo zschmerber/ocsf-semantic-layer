@@ -44,6 +44,18 @@ impl ThreatRelevance {
     }
 }
 
+/// A single level in a dimension drill-down hierarchy.
+///
+/// Represents one step in a drill path (e.g., Country → Region → City),
+/// referencing an attribute within the same entity.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HierarchyLevel {
+    /// Display name for this hierarchy level (e.g., "Country", "Region").
+    pub name: String,
+    /// Reference to an attribute name within the same entity.
+    pub attribute_ref: String,
+}
+
 /// Semantic type for entity attributes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -186,6 +198,18 @@ pub struct SemanticAttribute {
     /// Threat relevance metadata including use cases and MITRE ATT&CK mappings.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub threat_relevance: Option<ThreatRelevance>,
+
+    /// Ordered drill-down hierarchy levels for this dimension.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hierarchy: Vec<HierarchyLevel>,
+
+    /// Whether this attribute is hidden from downstream UI/views.
+    #[serde(default, skip_serializing_if = "crate::is_false")]
+    pub is_hidden: bool,
+
+    /// Logical folder for UI grouping.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
 }
 
 impl SemanticAttribute {
@@ -204,6 +228,9 @@ impl SemanticAttribute {
             value_pattern: None,
             is_observable: false,
             threat_relevance: None,
+            hierarchy: Vec::new(),
+            is_hidden: false,
+            folder: None,
         }
     }
 
@@ -284,6 +311,24 @@ impl SemanticAttribute {
         self.threat_relevance = Some(relevance);
         self
     }
+
+    /// Sets the drill-down hierarchy levels.
+    pub fn with_hierarchy(mut self, hierarchy: Vec<HierarchyLevel>) -> Self {
+        self.hierarchy = hierarchy;
+        self
+    }
+
+    /// Marks this attribute as hidden from downstream UI/views.
+    pub fn as_hidden(mut self) -> Self {
+        self.is_hidden = true;
+        self
+    }
+
+    /// Sets the logical folder for UI grouping.
+    pub fn with_folder(mut self, folder: impl Into<String>) -> Self {
+        self.folder = Some(folder.into());
+        self
+    }
 }
 
 /// Cardinality of an entity relationship.
@@ -345,6 +390,10 @@ pub struct EntityRelationship {
     /// Human-readable description of the relationship.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub description: String,
+
+    /// Role alias for role-playing relationships (used as SQL table alias).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role_alias: Option<String>,
 }
 
 impl EntityRelationship {
@@ -361,6 +410,7 @@ impl EntityRelationship {
             cardinality: Cardinality::default(),
             join_condition: join_condition.into(),
             description: String::new(),
+            role_alias: None,
         }
     }
 
@@ -382,13 +432,27 @@ impl EntityRelationship {
         self
     }
 
+    /// Sets the role alias for role-playing relationships.
+    pub fn with_role_alias(mut self, alias: impl Into<String>) -> Self {
+        self.role_alias = Some(alias.into());
+        self
+    }
+
     /// Generates a SQL JOIN clause for this relationship.
     pub fn to_join_sql(&self, from_entity: &str) -> String {
-        format!(
-            "JOIN {} ON {}",
-            self.target_entity,
-            self.join_condition.replace("{from}", from_entity)
-        )
+        match &self.role_alias {
+            Some(alias) => format!(
+                "JOIN {} AS {} ON {}",
+                self.target_entity,
+                alias,
+                self.join_condition.replace("{from}", from_entity)
+            ),
+            None => format!(
+                "JOIN {} ON {}",
+                self.target_entity,
+                self.join_condition.replace("{from}", from_entity)
+            ),
+        }
     }
 }
 
@@ -424,6 +488,10 @@ pub struct SemanticEntity {
     /// Observable type_ids this entity covers.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub covers_observables: Vec<u32>,
+
+    /// Reference to a Dataset by name for physical source resolution.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dataset_ref: Option<String>,
 }
 
 impl SemanticEntity {
@@ -437,6 +505,7 @@ impl SemanticEntity {
             attributes: Vec::new(),
             relationships: Vec::new(),
             covers_observables: Vec::new(),
+            dataset_ref: None,
         }
     }
 
@@ -494,6 +563,12 @@ impl SemanticEntity {
         self
     }
 
+    /// Sets the dataset reference for physical source resolution.
+    pub fn with_dataset_ref(mut self, dataset_ref: impl Into<String>) -> Self {
+        self.dataset_ref = Some(dataset_ref.into());
+        self
+    }
+
     /// Gets an attribute by name.
     pub fn get_attribute(&self, name: &str) -> Option<&SemanticAttribute> {
         self.attributes.iter().find(|a| a.name == name)
@@ -506,7 +581,7 @@ impl SemanticEntity {
 
     /// Returns all dimension attributes.
     pub fn dimensions(&self) -> impl Iterator<Item = &SemanticAttribute> {
-        self.attributes.iter().filter(|a| a.is_dimension)
+        self.attributes.iter().filter(|a| a.is_dimension || !a.hierarchy.is_empty())
     }
 }
 

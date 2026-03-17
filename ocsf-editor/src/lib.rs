@@ -39,6 +39,7 @@ use axum::{
     Router,
 };
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::{ServeDir, ServeFile};
 
 use ocsf_catalog::{PluginManager, SemanticCatalog, SidecarCatalog};
 use ocsf_index::backend::{BackendResult, IndexBackend, IndexRecord, InMemoryBackend, RecordFilter, SqliteBackend};
@@ -422,8 +423,14 @@ pub async fn create_app() -> Router {
         .allow_methods(Any)
         .allow_headers(Any);
 
+    // Serve the frontend SPA from editor-ui/dist with index.html fallback
+    let static_dir = "editor-ui/dist";
+    let serve_dir = ServeDir::new(static_dir)
+        .not_found_service(ServeFile::new(format!("{}/index.html", static_dir)));
+
     Router::new()
         .nest("/api", create_api_router())
+        .fallback_service(serve_dir)
         .layer(cors)
         .with_state(state)
 }

@@ -1,0 +1,92 @@
+/* MetricEditor Styles */
+
+.metric-editor {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.metric-editor-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(88, 166, 255, 0.1);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.metric-editor-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+
+.metric-editor-body {
+  padding: var(--spacing-md);
+}
+
+/* Formula header with toggle */
+.formula-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.formula-header .form-label {
+  margin-bottom: 0;
+}
+
+.formula-toggle {
+  font-size: var(--font-xs);
+}
+
+.formula-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
+}
+
+/* Non-additive dimensions checklist */
+.dimension-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.dimension-item {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.dimension-item:hover {
+  background: var(--bg-hover);
+}
+
+.dimension-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent-blue);
+  cursor: pointer;
+}
+
+.dimension-name {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+  font-size: var(--font-sm);
+  color: var(--accent-cyan);
+}
+
+.dimension-empty {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--spacing-sm);
+}

@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { SemanticAttribute, SemanticType, ThreatRelevance, FieldMapping } from '../../types';
+import type { SemanticAttribute, SemanticType, ThreatRelevance, FieldMapping, HierarchyLevel } from '../../types';
 import { createDefaultAttribute } from '../../types';
 import { useIndexStore } from '../../store/indexStore';
 
@@ -212,6 +212,11 @@ export function AttributeEditor({
   const [ocsfField, setOcsfField] = useState(attribute?.ocsf_mapping.field ?? '');
   const [ocsfExpression, setOcsfExpression] = useState(attribute?.ocsf_mapping.expression ?? '');
   
+  // SML enhancement fields (Requirements: 8.2, 8.3, 8.8)
+  const [isHidden, setIsHidden] = useState(attribute?.is_hidden ?? false);
+  const [folder, setFolder] = useState(attribute?.folder ?? '');
+  const [hierarchy, setHierarchy] = useState<HierarchyLevel[]>(attribute?.hierarchy ?? []);
+  
   // Mapping suggestion state (Requirements: 16.1, 16.4)
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [selectedSuggestion, setSelectedSuggestion] = useState<MappingSuggestion | null>(null);
@@ -261,6 +266,32 @@ export function AttributeEditor({
     }
   }, [errors.mapping]);
   
+  // Hierarchy management callbacks
+  const addHierarchyLevel = useCallback(() => {
+    setHierarchy(prev => [...prev, { name: '', attribute_ref: '' }]);
+  }, []);
+
+  const removeHierarchyLevel = useCallback((index: number) => {
+    setHierarchy(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const updateHierarchyLevel = useCallback((index: number, field: keyof HierarchyLevel, value: string) => {
+    setHierarchy(prev => prev.map((level, i) => i === index ? { ...level, [field]: value } : level));
+  }, []);
+
+  const moveHierarchyLevel = useCallback((index: number, direction: 'up' | 'down') => {
+    setHierarchy(prev => {
+      const next = [...prev];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= next.length) return prev;
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  }, []);
+
+  // Show hierarchy editor when attribute is a dimension or has existing hierarchy levels
+  const showHierarchyEditor = isDimension || hierarchy.length > 0;
+
   const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
     
@@ -311,6 +342,10 @@ export function AttributeEditor({
           ...(ocsfField.trim() && { field: ocsfField.trim() }),
           ...(ocsfExpression.trim() && { expression: ocsfExpression.trim() }),
         },
+        // SML enhancement fields
+        is_hidden: isHidden,
+        folder: folder.trim() || undefined,
+        hierarchy: hierarchy.filter(h => h.name.trim() && h.attribute_ref.trim()),
         // Advanced fields
         synonyms: parseCommaSeparated(synonyms),
         sample_values: parseCommaSeparated(sampleValues),
@@ -338,6 +373,9 @@ export function AttributeEditor({
       isArray,
       isDimension,
       isObservable,
+      isHidden,
+      folder,
+      hierarchy,
       ocsfField,
       ocsfExpression,
       synonyms,
@@ -479,6 +517,95 @@ export function AttributeEditor({
           </div>
         </div>
         
+        {/* Visibility & Organization (Requirements: 8.2, 8.8) */}
+        <div className="form-row">
+          <div className="form-group half">
+            <label className="form-label">Visibility</label>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={isHidden}
+                onChange={(e) => setIsHidden(e.target.checked)}
+              />
+              <span>Hidden</span>
+              {isHidden && <span className="hidden-badge">hidden</span>}
+            </label>
+          </div>
+          <div className="form-group half">
+            <label className="form-label" htmlFor="attr-folder">
+              Folder
+            </label>
+            <input
+              id="attr-folder"
+              type="text"
+              className="form-input"
+              value={folder}
+              onChange={(e) => setFolder(e.target.value)}
+              placeholder="e.g., Geography"
+            />
+          </div>
+        </div>
+
+        {/* Hierarchy Level Editor (Requirements: 8.3) */}
+        {showHierarchyEditor && (
+          <div className="form-group">
+            <label className="form-label">
+              Hierarchy Levels
+              <span className="form-hint">Ordered drill-down path for this dimension</span>
+            </label>
+            <div className="hierarchy-editor">
+              {hierarchy.map((level, index) => (
+                <div key={index} className="hierarchy-level-row">
+                  <span className="hierarchy-level-number">{index + 1}</span>
+                  <input
+                    type="text"
+                    className="form-input hierarchy-input"
+                    value={level.name}
+                    onChange={(e) => updateHierarchyLevel(index, 'name', e.target.value)}
+                    placeholder="Level name"
+                  />
+                  <input
+                    type="text"
+                    className="form-input hierarchy-input mono"
+                    value={level.attribute_ref}
+                    onChange={(e) => updateHierarchyLevel(index, 'attribute_ref', e.target.value)}
+                    placeholder="attribute_ref"
+                  />
+                  <div className="hierarchy-level-actions">
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => moveHierarchyLevel(index, 'up')}
+                      disabled={index === 0}
+                      title="Move up"
+                    >↑</button>
+                    <button
+                      type="button"
+                      className="btn-icon"
+                      onClick={() => moveHierarchyLevel(index, 'down')}
+                      disabled={index === hierarchy.length - 1}
+                      title="Move down"
+                    >↓</button>
+                    <button
+                      type="button"
+                      className="btn-icon danger"
+                      onClick={() => removeHierarchyLevel(index)}
+                      title="Remove level"
+                    >×</button>
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="btn hierarchy-add-btn"
+                onClick={addHierarchyLevel}
+              >
+                + Add Level
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* OCSF Mapping */}
         <div className={`form-group ${!hasMapping && mappingSuggestions.length > 0 ? 'unmapped-highlight' : ''}`}>
           <label className="form-label" htmlFor="attr-ocsf-field">

@@ -12,6 +12,18 @@ use serde::{Deserialize, Serialize};
 use crate::entity::SemanticEntity;
 use crate::metric::SemanticMetric;
 
+/// A physical data source abstraction decoupled from semantic definitions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Dataset {
+    pub name: String,
+    pub dialect: String,
+    pub table: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connection: Option<String>,
+}
+
 /// Configuration for observable extraction.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ObservableConfig {
@@ -74,6 +86,10 @@ pub struct SemanticModel {
     /// Observable extraction configuration.
     #[serde(default)]
     pub observable_config: ObservableConfig,
+
+    /// Physical data source definitions.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub datasets: Vec<Dataset>,
 }
 
 fn default_version() -> String {
@@ -90,6 +106,7 @@ impl Default for SemanticModel {
             entities: Vec::new(),
             metrics: Vec::new(),
             observable_config: ObservableConfig::default(),
+            datasets: Vec::new(),
         }
     }
 }
@@ -148,6 +165,18 @@ impl SemanticModel {
     /// Sets the observable configuration.
     pub fn with_observable_config(mut self, config: ObservableConfig) -> Self {
         self.observable_config = config;
+        self
+    }
+
+    /// Adds a dataset.
+    pub fn add_dataset(mut self, dataset: Dataset) -> Self {
+        self.datasets.push(dataset);
+        self
+    }
+
+    /// Sets the datasets.
+    pub fn with_datasets(mut self, datasets: Vec<Dataset>) -> Self {
+        self.datasets = datasets;
         self
     }
 
