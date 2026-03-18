@@ -17,6 +17,14 @@
   flex-shrink: 0;
 }
 
+.schema-browser-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+  display: inline-block;
+}
+
 .schema-browser-content {
   display: flex;
   flex-direction: column;

@@ -16,6 +16,7 @@ import { SchemaTreeNode, categoryToNode, objectToNode } from './SchemaTreeNode';
 import type { SchemaNodeData } from './SchemaTreeNode';
 import { AttributeDetails } from './AttributeDetails';
 import { SchemaSearch } from './SchemaSearch';
+import { ContextualTooltip } from '../ContextualTooltip';
 import './SchemaBrowser.css';
 
 // ============================================
@@ -264,6 +265,9 @@ export function SchemaBrowser() {
   return (
     <div className="schema-browser">
       <div className="schema-browser-header">
+        <ContextualTooltip term="event_class">
+          <span className="schema-browser-title">Event Classes</span>
+        </ContextualTooltip>
         <SchemaSearch
           value={searchQuery}
           onChange={handleSearchChange}

@@ -1,0 +1,115 @@
+/**
+ * NextStepPrompt styles — slide-in banner at the bottom of the content area.
+ * Green/success color scheme with slide-in animation.
+ * Uses existing dark theme CSS variables.
+ *
+ * Requirements: 6.1
+ */
+
+/* Slide-in animation */
+@keyframes next-step-slide-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Container — fixed to bottom of content area */
+.next-step-prompt {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: rgba(126, 231, 135, 0.1);
+  border-top: 1px solid rgba(126, 231, 135, 0.3);
+  animation: next-step-slide-in 0.3s ease-out;
+  z-index: 10;
+}
+
+/* Message text — left side */
+.next-step-prompt__message {
+  flex: 1;
+  font-size: var(--font-sm);
+  color: var(--accent-green);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Navigate button — right side */
+.next-step-prompt__navigate {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(126, 231, 135, 0.15);
+  border: 1px solid rgba(126, 231, 135, 0.35);
+  border-radius: var(--radius-md);
+  color: var(--accent-green);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.next-step-prompt__navigate:hover {
+  background: rgba(126, 231, 135, 0.25);
+  border-color: rgba(126, 231, 135, 0.5);
+}
+
+/* Dismiss button — far right */
+.next-step-prompt__dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.next-step-prompt__dismiss:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-color: var(--border-primary);
+}
+
+/* Index hint text — shown on all-steps-complete (Requirement 6.4) */
+.next-step-prompt__index-hint {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  white-space: normal;
+  overflow: hidden;
+}
+
+/* Optional navigate button — softer styling for optional Index link */
+.next-step-prompt__navigate--optional {
+  background: rgba(126, 231, 135, 0.08);
+  border-color: rgba(126, 231, 135, 0.2);
+  font-weight: 500;
+}
+
+.next-step-prompt__navigate--optional:hover {
+  background: rgba(126, 231, 135, 0.18);
+  border-color: rgba(126, 231, 135, 0.4);
+}

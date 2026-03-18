@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import './App.css';
 import { usePersistence, useKeyboardShortcuts } from './hooks';
 import { useEditorStore } from './store';
@@ -22,8 +22,19 @@ import {
   CatalogEntryDetail,
   PluginDashboard,
   EtlDashboard,
+  GuidedProgressBar,
+  StepHint,
+  EmptyStateGuide,
+  NextStepPrompt,
+  GuideErrorBoundary,
+  EventPastePanel,
 } from './components';
 import { useTables } from './api/hooks';
+import { useGuideStore } from './store/guideStore';
+import { checkPrerequisites, shouldShowNextPrompt, getNextStep } from './store/guideLogic';
+import { useReferenceEventStore } from './store/referenceEventStore';
+import type { GuideStepId, TabId as GuideTabId } from './types/guide';
+import { GUIDE_STEPS } from './types/guide';
 import { exportModelAsYaml, modelToYaml, openFilePicker, importModelFromYaml, type ImportError } from './utils';
 import { getLLMConfig, setLLMConfig } from './api/client';
 import { getTables, importIndexModel, exportIndexModel } from './api/indexApi';
@@ -174,6 +185,88 @@ function App() {
   const isLoading = useEditorStore((state) => state.isLoading);
   const startLoading = useEditorStore((state) => state.startLoading);
   const stopLoading = useEditorStore((state) => state.stopLoading);
+
+  // ============================================
+  // Guide Store State (Tasks 9.1–9.4)
+  // ============================================
+  const guideVisible = useGuideStore((s) => s.guideVisible);
+  const stepStatuses = useGuideStore((s) => s.stepStatuses);
+  const shownPrompts = useGuideStore((s) => s.shownPrompts);
+  const model = useEditorStore((state) => state.model);
+  const { data: guideTables } = useTables({ is_active: true });
+  const tablesRegistered = (guideTables?.length ?? 0) > 0;
+  const classDetection = useReferenceEventStore((s) => s.classDetection);
+  const referenceRawJson = useReferenceEventStore((s) => s.rawJson);
+  const schema = useEditorStore((state) => state.schema);
+
+  // Track previous step statuses for NextStepPrompt detection
+  const prevStepStatusesRef = useRef<Record<GuideStepId, string> | null>(null);
+  const [activePromptStepId, setActivePromptStepId] = useState<GuideStepId | null>(null);
+
+  // Refresh step statuses when model or classDetection change (Requirement 10.1, 10.2)
+  useEffect(() => {
+    useGuideStore.getState().refreshStepStatuses(activeTab as GuideTabId, classDetection);
+  }, [model, classDetection, activeTab]);
+
+  // Auto-set EditorStore selected class and expand schema tree on class detection (Requirements 2.7, 2.8)
+  useEffect(() => {
+    if (!classDetection?.classUid || !classDetection?.categoryUid) return;
+    const store = useEditorStore.getState();
+    // Expand the category node and class node in the schema tree
+    store.expandNode(`category-${classDetection.categoryUid}`);
+    store.expandNode(`class-${classDetection.classUid}`);
+  }, [classDetection]);
+
+  // Rehydrate ReferenceEventStore when schema loads with persisted rawJson (Requirement 14.3)
+  // Queues detection: if rawJson was restored from localStorage but schema wasn't available yet,
+  // rehydrate computes classDetection/observables/mismatches once schema is ready.
+  useEffect(() => {
+    if (!schema || !referenceRawJson) return;
+    const { classDetection: currentDetection } = useReferenceEventStore.getState();
+    if (currentDetection) return; // Already hydrated
+    useReferenceEventStore.getState().rehydrate(schema);
+  }, [schema, referenceRawJson]);
+
+  // Detect step completion transitions for NextStepPrompt (Requirement 6.1)
+  useEffect(() => {
+    const prev = prevStepStatusesRef.current;
+    if (prev && guideVisible) {
+      const stepIds: GuideStepId[] = [1, 2, 3, 4];
+      for (const id of stepIds) {
+        if (prev[id] !== 'complete' && stepStatuses[id] === 'complete') {
+          if (shouldShowNextPrompt(id, guideVisible, shownPrompts)) {
+            setActivePromptStepId(id);
+            break;
+          }
+        }
+      }
+    }
+    prevStepStatusesRef.current = { ...stepStatuses };
+  }, [stepStatuses, guideVisible, shownPrompts]);
+
+  // Build guide steps for GuidedProgressBar
+  const guideSteps = useMemo(() =>
+    GUIDE_STEPS.map((s) => ({ ...s, status: stepStatuses[s.id] })),
+    [stepStatuses]
+  );
+
+  // Helper: check if tab content is empty
+  const isTabContentEmpty = useCallback((tab: string): boolean => {
+    switch (tab) {
+      case 'schema':
+        return !model.entities.some(
+          (e) => Array.isArray(e.source_event_classes) && e.source_event_classes.length > 0
+        );
+      case 'entities':
+        return model.entities.length === 0;
+      case 'metrics':
+        return model.metrics.length === 0;
+      case 'index':
+        return !tablesRegistered;
+      default:
+        return false;
+    }
+  }, [model, tablesRegistered]);
 
   // Load LLM config on mount
   useEffect(() => {
@@ -548,6 +641,16 @@ function App() {
             ))}
           </nav>
           <div className="header-actions">
+            {!guideVisible && (
+              <button
+                className="btn icon-btn"
+                onClick={() => useGuideStore.getState().setGuideVisible(true)}
+                title="Show Guide"
+                aria-label="Show onboarding guide"
+              >
+                📖
+              </button>
+            )}
             <HeaderLoadingIndicator />
             <button 
               className="btn icon-btn" 
@@ -578,6 +681,18 @@ function App() {
             </button>
           </div>
         </header>
+
+        {/* Guided Progress Bar (Task 9.1) */}
+        {guideVisible && (
+          <GuideErrorBoundary>
+            <GuidedProgressBar
+              steps={guideSteps}
+              currentTab={activeTab as GuideTabId}
+              onStepClick={(step) => setActiveTab(step.targetTab as TabId)}
+              onDismiss={() => useGuideStore.getState().setGuideVisible(false)}
+            />
+          </GuideErrorBoundary>
+        )}
 
         {/* Import Error Modal */}
         {importErrors && (
@@ -830,34 +945,125 @@ function App() {
 
         <main className="content">
           <aside className={`sidebar ${activeTab === 'schema' ? 'schema-focused' : ''}`}>
+            {/* StepHint for Schema tab (Task 9.2) */}
+            {activeTab === 'schema' && guideVisible && (
+              <GuideErrorBoundary>
+                <StepHint
+                  stepId={1}
+                  tabId="schema"
+                  isStepComplete={stepStatuses[1] === 'complete'}
+                  onDismissHint={(id) => useGuideStore.getState().dismissHint(id)}
+                />
+              </GuideErrorBoundary>
+            )}
+            {/* EmptyStateGuide for Schema tab (Task 9.2) */}
+            {activeTab === 'schema' && isTabContentEmpty('schema') && (
+              <GuideErrorBoundary>
+                <EmptyStateGuide
+                  tabId="schema"
+                  stepId={1}
+                  prerequisitesMet={true}
+                  onNavigateToPrerequisite={(tab) => setActiveTab(tab as TabId)}
+                />
+              </GuideErrorBoundary>
+            )}
+            {/* EventPastePanel for data-first workflow (Task 7.3) — Requirements 1.1, 2.7, 2.8, 12.1 */}
+            {activeTab === 'schema' && (
+              <EventPastePanel onSkip={() => { /* no-op: analyst continues with manual schema browsing */ }} />
+            )}
             <SchemaBrowser />
           </aside>
 
           <section className={`main-panel ${activeTab === 'schema' ? 'hidden' : ''}`}>
             {activeTab === 'entities' && (
-              <EntityEditor />
+              <>
+                {/* StepHint for Entities tab (Task 9.2) */}
+                <GuideErrorBoundary>
+                  <StepHint
+                    stepId={stepStatuses[2] === 'complete' ? 3 : 2}
+                    tabId="entities"
+                    isStepComplete={stepStatuses[2] === 'complete' && stepStatuses[3] === 'complete'}
+                    onDismissHint={(id) => useGuideStore.getState().dismissHint(id)}
+                  />
+                </GuideErrorBoundary>
+                {/* EmptyStateGuide for Entities tab (Task 9.2) */}
+                {isTabContentEmpty('entities') && (
+                  <GuideErrorBoundary>
+                    <EmptyStateGuide
+                      tabId="entities"
+                      stepId={2}
+                      prerequisitesMet={checkPrerequisites(2, stepStatuses).met}
+                      onNavigateToPrerequisite={(tab) => setActiveTab(tab as TabId)}
+                    />
+                  </GuideErrorBoundary>
+                )}
+                <EntityEditor />
+              </>
             )}
 
             {activeTab === 'metrics' && (
-              <MetricBuilder />
+              <>
+                {/* StepHint for Metrics tab (Task 9.2) */}
+                <GuideErrorBoundary>
+                  <StepHint
+                    stepId={3}
+                    tabId="metrics"
+                    isStepComplete={stepStatuses[3] === 'complete'}
+                    onDismissHint={(id) => useGuideStore.getState().dismissHint(id)}
+                  />
+                </GuideErrorBoundary>
+                {/* EmptyStateGuide for Metrics tab (Task 9.2) */}
+                {isTabContentEmpty('metrics') && (
+                  <GuideErrorBoundary>
+                    <EmptyStateGuide
+                      tabId="metrics"
+                      stepId={3}
+                      prerequisitesMet={checkPrerequisites(3, stepStatuses).met}
+                      onNavigateToPrerequisite={(tab) => setActiveTab(tab as TabId)}
+                    />
+                  </GuideErrorBoundary>
+                )}
+                <MetricBuilder />
+              </>
             )}
 
             {activeTab === 'validation' && (
-              <ValidationPanel
-                onNavigateToEntity={() => {
-                  setActiveTab('entities');
-                  // Entity selection is handled by ValidationPanel
-                }}
-                onNavigateToMetric={() => {
-                  setActiveTab('metrics');
-                  // Metric selection is handled by ValidationPanel
-                }}
-              />
+              <>
+                {/* StepHint for Validation tab (Task 9.2) */}
+                <GuideErrorBoundary>
+                  <StepHint
+                    stepId={4}
+                    tabId="validation"
+                    isStepComplete={stepStatuses[4] === 'complete'}
+                    onDismissHint={(id) => useGuideStore.getState().dismissHint(id)}
+                  />
+                </GuideErrorBoundary>
+                <ValidationPanel
+                  onNavigateToEntity={() => {
+                    setActiveTab('entities');
+                  }}
+                  onNavigateToMetric={() => {
+                    setActiveTab('metrics');
+                  }}
+                />
+              </>
             )}
 
             {/* Index Views (Requirements 13.1, 13.2, 13.3, 13.4) */}
             {activeTab === 'index' && (
               <div className="index-view-container">
+                {/* Index tab is optional — not part of 4-step workflow (Requirement 6.1, 6.2) */}
+                {/* EmptyStateGuide for Index tab — optional enrichment */}
+                {isTabContentEmpty('index') && (
+                  <GuideErrorBoundary>
+                    <EmptyStateGuide
+                      tabId="index"
+                      stepId={null}
+                      prerequisitesMet={true}
+                      onNavigateToPrerequisite={(tab) => setActiveTab(tab as TabId)}
+                    />
+                  </GuideErrorBoundary>
+                )}
                 {/* Configuration prompt when backend not configured (Requirement 13.4) */}
                 {indexBackendConfigured === false && (
                   <div className="index-config-prompt">
@@ -1007,6 +1213,29 @@ function App() {
             {activeTab === 'etl' && (
               <EtlDashboard />
             )}
+
+            {/* NextStepPrompt — slide-in banner on step completion (Task 9.3) */}
+            {activePromptStepId !== null && guideVisible && (() => {
+              const { nextStepId, nextTab } = getNextStep(activePromptStepId);
+              return (
+                <GuideErrorBoundary>
+                  <NextStepPrompt
+                    completedStepId={activePromptStepId}
+                    nextStepId={nextStepId}
+                    nextTabId={nextTab}
+                    onNavigate={(tab) => {
+                      useGuideStore.getState().markPromptShown(activePromptStepId);
+                      setActivePromptStepId(null);
+                      setActiveTab(tab as TabId);
+                    }}
+                    onDismiss={() => {
+                      useGuideStore.getState().markPromptShown(activePromptStepId);
+                      setActivePromptStepId(null);
+                    }}
+                  />
+                </GuideErrorBoundary>
+              );
+            })()}
           </section>
         </main>
       </div>

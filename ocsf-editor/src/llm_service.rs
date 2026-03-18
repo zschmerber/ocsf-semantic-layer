@@ -617,6 +617,22 @@ Example format:
     }
 
 
+    /// Send a raw prompt to the configured LLM and return the response text.
+    ///
+    /// This is a public wrapper around `call_llm` for use by API handlers
+    /// that need to send custom prompts (e.g., mapping interpretation).
+    pub async fn send_prompt(&self, prompt: &str) -> Result<String, EditorApiError> {
+        let (text, _tokens) = self.call_llm(prompt).await?;
+        Ok(text)
+    }
+
+    /// Extract JSON from an LLM response, handling markdown code blocks.
+    ///
+    /// Public wrapper for use by API handlers that parse LLM JSON responses.
+    pub fn parse_json_response(&self, response: &str) -> Result<serde_json::Value, EditorApiError> {
+        self.extract_json(response)
+    }
+
     /// Call the LLM API (OpenAI or Anthropic).
     async fn call_llm(&self, prompt: &str) -> Result<(String, u32), EditorApiError> {
         match self.provider {

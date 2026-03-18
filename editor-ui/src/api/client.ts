@@ -313,6 +313,7 @@ export function del<T>(endpoint: string, options?: RequestOptions): Promise<T> {
 // ============================================
 
 import type { LLMConfigResponse, LLMConfigRequest } from '../types';
+import type { InterpretedMapping } from '../types/referenceEvent';
 
 /**
  * Get the current LLM configuration status.
@@ -326,4 +327,66 @@ export function getLLMConfig(): Promise<LLMConfigResponse> {
  */
 export function setLLMConfig(config: LLMConfigRequest): Promise<LLMConfigResponse> {
   return post<LLMConfigResponse, LLMConfigRequest>('/llm/config', config);
+}
+
+// ============================================
+// LLM Mapping Interpretation API
+// ============================================
+
+/** Timeout for LLM calls (60 seconds — LLM inference can be slow) */
+const LLM_TIMEOUT = 60000;
+
+/**
+ * Backend response shape from POST /llm/interpret-mapping.
+ * Uses snake_case to match the Rust serde serialization.
+ */
+interface InterpretMappingBackendResponse {
+  mappings: Array<{
+    raw_field: string;
+    ocsf_field: string;
+    transformation: string | null;
+    confidence: 'high' | 'medium' | 'low';
+    explanation: string | null;
+  }>;
+  source_system: {
+    log_type: string | null;
+    vendor: string | null;
+  };
+  issues: string[];
+}
+
+/**
+ * Send a reference event and mapping artifact to the LLM for interpretation.
+ * Returns a normalized InterpretedMapping with camelCase fields and timestamps.
+ *
+ * Requirements: 15.1, 15.12
+ */
+export async function interpretMapping(body: {
+  event_json: string;
+  mapping_text: string;
+}): Promise<InterpretedMapping> {
+  const raw = await post<InterpretMappingBackendResponse>(
+    '/llm/interpret-mapping',
+    body,
+    { timeout: LLM_TIMEOUT, skipRetry: true },
+  );
+
+  // Normalize snake_case backend response → camelCase frontend type
+  return {
+    entries: raw.mappings.map((m) => ({
+      rawField: m.raw_field,
+      ocsfField: m.ocsf_field,
+      transformation: m.transformation,
+      confidence: (m.confidence.charAt(0).toUpperCase() + m.confidence.slice(1)) as 'High' | 'Medium' | 'Low',
+      explanation: m.explanation,
+      verificationStatus: 'Unverified' as const, // computed later by the store
+      conflictDetail: null,
+    })),
+    sourceSystem: {
+      logType: raw.source_system.log_type,
+      vendor: raw.source_system.vendor,
+    },
+    issues: raw.issues,
+    interpretedAt: new Date().toISOString(),
+  };
 }

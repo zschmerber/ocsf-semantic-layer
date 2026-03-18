@@ -668,3 +668,142 @@
     fill: var(--bg-secondary);
   }
 }
+
+
+/* ── Project Map Diagram ── */
+.project-map-diagram .diagram-description {
+  color: #94a3b8;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.project-map-diagram .diagram-description code {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.project-map-svg {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 2rem;
+  display: block;
+}
+
+.crate-box {
+  stroke-width: 2;
+  fill-opacity: 0.12;
+}
+
+.crate-foundation { fill: #3b82f6; stroke: #3b82f6; }
+.crate-semantic   { fill: #8b5cf6; stroke: #8b5cf6; }
+.crate-index      { fill: #06b6d4; stroke: #06b6d4; }
+.crate-vector     { fill: #10b981; stroke: #10b981; }
+.crate-catalog    { fill: #10b981; stroke: #10b981; }
+.crate-output     { fill: #f59e0b; stroke: #f59e0b; }
+.crate-app        { fill: #ec4899; stroke: #ec4899; }
+.crate-demo       { fill: #6b7280; stroke: #6b7280; }
+
+.crate-name {
+  fill: #e2e8f0;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.crate-desc {
+  fill: #94a3b8;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.arrow-line {
+  stroke: #475569;
+  stroke-width: 2;
+  fill: none;
+}
+
+.arrow-dashed {
+  stroke-dasharray: 6 4;
+  stroke: #64748b;
+}
+
+.arrow-label {
+  fill: #64748b;
+  font-size: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.arrow-head {
+  fill: #475569;
+}
+
+.layer-badge {
+  fill-opacity: 0.2;
+  stroke-width: 1;
+}
+
+.layer-foundation    { fill: #3b82f6; stroke: #3b82f6; }
+.layer-semantic-badge { fill: #8b5cf6; stroke: #8b5cf6; }
+.layer-intelligence  { fill: #10b981; stroke: #10b981; }
+.layer-output-badge  { fill: #f59e0b; stroke: #f59e0b; }
+.layer-app-badge     { fill: #ec4899; stroke: #ec4899; }
+
+.layer-badge-text {
+  fill: #cbd5e1;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Legend */
+.project-map-legend {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.project-map-legend h4 {
+  color: #e2e8f0;
+  margin: 0 0 1rem;
+  font-size: 1rem;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 800px) {
+  .legend-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.legend-color {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  margin-top: 3px;
+}
+
+.legend-title {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.82rem;
+}

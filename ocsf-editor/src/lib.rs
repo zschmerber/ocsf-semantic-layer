@@ -397,6 +397,8 @@ fn create_api_router() -> Router<AppState> {
         .route("/llm/research/batch", post(api::llm_research_batch))
         // LLM configuration endpoints
         .route("/llm/config", get(api::get_llm_config).post(api::set_llm_config))
+        // LLM mapping interpretation endpoint (Requirement 15.12)
+        .route("/llm/interpret-mapping", post(api::interpret_mapping))
         // Health check endpoint
         .route("/health", get(api::health_check))
         // Index endpoints (Requirements 2-7, 18-19)

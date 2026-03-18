@@ -514,3 +514,181 @@
   font-size: 2rem;
   margin-bottom: var(--spacing-md);
 }
+
+/* ============================================
+   Suggested Metrics Section (Reference Event)
+   ============================================ */
+
+.sample-event-indicator {
+  display: inline-block;
+  font-size: var(--font-xs);
+  color: var(--accent-yellow, #e3b341);
+  background: rgba(227, 179, 65, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: var(--spacing-xs);
+}
+
+.suggested-metrics-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-purple, #bc8cff);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.suggested-metrics-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(188, 140, 255, 0.08);
+  cursor: pointer;
+  user-select: none;
+}
+
+.suggested-metrics-header:hover {
+  background: rgba(188, 140, 255, 0.14);
+}
+
+.suggested-metrics-icon {
+  font-size: 1rem;
+}
+
+.suggested-metrics-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--accent-purple, #bc8cff);
+  flex: 1;
+}
+
+.suggested-metrics-count {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.suggested-metrics-toggle {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.suggested-metrics-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+.suggested-metrics-list {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.suggested-metric-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+  transition: border-color var(--transition-fast);
+}
+
+.suggested-metric-item:hover {
+  border-color: var(--accent-purple, #bc8cff);
+}
+
+.suggested-metric-item.added {
+  opacity: 0.6;
+  border-color: var(--accent-green, #56d364);
+}
+
+.suggested-metric-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.suggested-metric-top {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.suggested-metric-name {
+  font-weight: 600;
+  font-size: var(--font-sm);
+  color: var(--accent-orange, #f0883e);
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+}
+
+.suggested-metric-confidence {
+  font-size: var(--font-xs);
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.suggested-metric-confidence.confidence-high {
+  color: var(--accent-green, #56d364);
+  background: rgba(86, 211, 100, 0.15);
+}
+
+.suggested-metric-confidence.confidence-medium {
+  color: var(--accent-yellow, #e3b341);
+  background: rgba(227, 179, 65, 0.15);
+}
+
+.suggested-metric-confidence.confidence-low {
+  color: var(--text-muted);
+  background: rgba(139, 148, 158, 0.15);
+}
+
+.suggested-metric-agg {
+  font-size: var(--font-xs);
+  color: var(--accent-cyan, #79c0ff);
+  background: rgba(121, 192, 255, 0.15);
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.suggested-metric-desc {
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.suggested-metric-field {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+}
+
+.suggested-metric-field code {
+  background: var(--bg-secondary);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  color: var(--accent-cyan, #79c0ff);
+}
+
+.suggested-metric-add {
+  flex-shrink: 0;
+  align-self: center;
+  font-size: var(--font-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-width: 70px;
+}
+
+.suggested-metric-add.added {
+  color: var(--accent-green, #56d364);
+  border-color: var(--accent-green, #56d364);
+  cursor: default;
+}

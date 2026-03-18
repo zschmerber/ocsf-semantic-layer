@@ -17,6 +17,7 @@ import {
 import { useIndexStore } from '../../store/indexStore';
 import type { TableEntry, DetectionCoverage } from '../../types';
 import type { RegisterTableRequest } from '../../api/indexApi';
+import { ContextualTooltip } from '../ContextualTooltip';
 import './TableRegistryBrowser.css';
 
 // ============================================
@@ -307,7 +308,11 @@ function TableDetailPanel({ table, onEdit, onClose }: TableDetailPanelProps) {
         {/* Detection Coverage (Requirement 10.2) */}
         {table.detection_coverage && (
           <div className="detail-section">
-            <h4>Detection Coverage</h4>
+            <h4>
+              <ContextualTooltip term="detection_coverage">
+                <span>Detection Coverage</span>
+              </ContextualTooltip>
+            </h4>
             <DetectionCoverageDisplay coverage={table.detection_coverage} />
           </div>
         )}
@@ -542,7 +547,12 @@ function RegisterTableModal({ onClose, editTable }: RegisterTableModalProps) {
           </div>
           
           <div className="form-section">
-            <h4>Detection Coverage (Optional)</h4>
+            <h4>
+              <ContextualTooltip term="detection_coverage">
+                <span>Detection Coverage</span>
+              </ContextualTooltip>
+              {' '}(Optional)
+            </h4>
             
             <div className="form-group">
               <label htmlFor="mitreTechniques">MITRE Techniques</label>

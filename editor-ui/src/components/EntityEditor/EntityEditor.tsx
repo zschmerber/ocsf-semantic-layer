@@ -8,11 +8,16 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useEditorStore } from '../../store';
+import { useReferenceEventStore } from '../../store/referenceEventStore';
 import type { SemanticEntity, ClassNode, ResearchTarget, EntityRelationship } from '../../types';
+import type { ObservableFlag, TypeMismatch } from '../../types/referenceEvent';
 import { EntityForm } from './EntityForm';
 import { EntityList } from './EntityList';
 import { AttributeMappingZone } from './AttributeMappingZone';
 import { LLMResearchPanel, BatchResearchPanel } from '../LLMResearchPanel';
+import { ContextualTooltip } from '../ContextualTooltip';
+import { SuggestedModelPanel } from './SuggestedModelPanel';
+import { useGuideStore } from '../../store/guideStore';
 import './EntityEditor.css';
 
 // ============================================
@@ -30,6 +35,40 @@ export function EntityEditor() {
   const [editingEntity, setEditingEntity] = useState<SemanticEntity | null>(null);
   const [researchTarget, setResearchTarget] = useState<ResearchTarget | null>(null);
   const [showBatchResearch, setShowBatchResearch] = useState(false);
+  const [showAllFields, setShowAllFields] = useState(false);
+  const [suggestedModelDismissed, setSuggestedModelDismissed] = useState(false);
+  
+  // Reference event store state (Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 13.2)
+  const rawJson = useReferenceEventStore((state) => state.rawJson);
+  const parsedFields = useReferenceEventStore((state) => state.parsedFields);
+  const observableFlags = useReferenceEventStore((state) => state.observableFlags);
+  const typeMismatches = useReferenceEventStore((state) => state.typeMismatches);
+  
+  // Guide store — check Step 1 completion (Requirements: 9.1, 9.2)
+  const stepStatuses = useGuideStore((state) => state.stepStatuses);
+  const step1Complete = stepStatuses[1] === 'complete';
+  
+  const hasReferenceEvent = rawJson !== null;
+  
+  // Show SuggestedModelPanel when Step 1 is complete, reference event loaded, and not dismissed
+  const showSuggestedModel = step1Complete && hasReferenceEvent && !suggestedModelDismissed;
+  
+  // Build lookup maps for quick access
+  const observableFlagMap = useMemo(() => {
+    const map = new Map<string, ObservableFlag>();
+    for (const flag of observableFlags) {
+      map.set(flag.fieldPath, flag);
+    }
+    return map;
+  }, [observableFlags]);
+  
+  const typeMismatchMap = useMemo(() => {
+    const map = new Map<string, TypeMismatch>();
+    for (const mismatch of typeMismatches) {
+      map.set(mismatch.fieldPath, mismatch);
+    }
+    return map;
+  }, [typeMismatches]);
   
   // Store state
   const entities = useEditorStore((state) => state.model.entities);
@@ -132,11 +171,20 @@ export function EntityEditor() {
   return (
     <div className="entity-editor">
       <div className="entity-editor-header">
-        <h2>Entities</h2>
+        <h2>
+          <ContextualTooltip term="semantic_entity">
+            <span>Entities</span>
+          </ContextualTooltip>
+        </h2>
         <button className="btn primary" onClick={handleCreateNew}>
           + New Entity
         </button>
       </div>
+
+      {/* Suggested Model Panel (Requirements: 9.1-9.9) */}
+      {showSuggestedModel && (
+        <SuggestedModelPanel onDismiss={() => setSuggestedModelDismissed(true)} />
+      )}
       
       <div className="entity-editor-content">
         <div className="entity-list-panel">
@@ -191,7 +239,9 @@ export function EntityEditor() {
                 <code>{currentEntity.name}</code>
               </span>
               <span className="meta-item">
-                <span className="meta-label">Event Classes:</span>
+                <ContextualTooltip term="event_class">
+                  <span className="meta-label">Event Classes:</span>
+                </ContextualTooltip>
                 <span>{currentEntity.source_event_classes.length}</span>
               </span>
             </div>
@@ -204,6 +254,63 @@ export function EntityEditor() {
                   target={researchTarget}
                   onClose={handleCloseResearch}
                 />
+              </div>
+            )}
+
+            {/* Reference Event Data Overlay (Requirements: 8.1-8.6, 13.2) */}
+            {hasReferenceEvent && (
+              <div className="reference-event-overlay">
+                <div className="reference-event-indicator">
+                  <span className="sample-event-badge" title="Multi-event support is planned for a future version">📊 Based on 1 sample event</span>
+                  <div className="field-view-toggle">
+                    <button
+                      className={`toggle-btn ${!showAllFields ? 'active' : ''}`}
+                      onClick={() => setShowAllFields(false)}
+                    >
+                      Sample fields only
+                    </button>
+                    <button
+                      className={`toggle-btn ${showAllFields ? 'active' : ''}`}
+                      onClick={() => setShowAllFields(true)}
+                    >
+                      All schema fields
+                    </button>
+                  </div>
+                </div>
+
+                {!showAllFields && (
+                  <div className="sample-fields-list">
+                    {parsedFields.map((field) => {
+                      const observable = observableFlagMap.get(field.path);
+                      const mismatch = typeMismatchMap.get(field.path);
+                      const truncatedValue = field.value.length > 60
+                        ? field.value.slice(0, 60) + '…'
+                        : field.value;
+
+                      return (
+                        <div key={field.path} className="sample-field-item">
+                          <div className="sample-field-header">
+                            <code className="sample-field-path">{field.path}</code>
+                            <span className="sample-field-type">{field.type}</span>
+                            {observable && (
+                              <span className="sample-field-observable" title={`Observable: ${observable.observableType} (${observable.confidence} confidence)`}>
+                                🔍
+                              </span>
+                            )}
+                            {mismatch && (
+                              <span className="sample-field-mismatch" title={`Type mismatch: observed ${mismatch.observedType}, schema expects ${mismatch.schemaType}`}>
+                                ⚠️ {mismatch.observedType} → {mismatch.schemaType}
+                              </span>
+                            )}
+                          </div>
+                          <div className="sample-field-value" title={field.value}>
+                            {truncatedValue}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
             

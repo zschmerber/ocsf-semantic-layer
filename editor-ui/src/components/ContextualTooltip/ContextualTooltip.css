@@ -1,0 +1,131 @@
+/**
+ * ContextualTooltip styles — inline help icon with dark popover.
+ * Matches the dark theme of the editor UI.
+ * Supports above/below positioning with arrow caret.
+ *
+ * Requirements: 7.1
+ */
+
+/* Inline wrapper — keeps children and icon on the same line */
+.contextual-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  position: relative;
+}
+
+/* Help icon (?) — small circular button */
+.contextual-tooltip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: rgba(139, 148, 158, 0.15);
+  border: 1px solid rgba(139, 148, 158, 0.3);
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.contextual-tooltip__icon:hover {
+  color: var(--text-primary);
+  background: rgba(139, 148, 158, 0.25);
+  border-color: rgba(139, 148, 158, 0.5);
+}
+
+.contextual-tooltip__icon:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+}
+
+/* Popover container — dark background, positioned relative to icon */
+.contextual-tooltip__popover {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--bg-elevated, #1e2228);
+  border: 1px solid var(--border-primary, #3a3f47);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  animation: tooltip-fade-in 0.15s ease-out;
+}
+
+/* Position above the icon (default) */
+.contextual-tooltip__popover--above {
+  bottom: calc(100% + 8px);
+}
+
+/* Position below the icon (when near top of viewport) */
+.contextual-tooltip__popover--below {
+  top: calc(100% + 8px);
+}
+
+/* Arrow caret */
+.contextual-tooltip__arrow {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--bg-elevated, #1e2228);
+  border-color: var(--border-primary, #3a3f47);
+}
+
+.contextual-tooltip__popover--above .contextual-tooltip__arrow {
+  bottom: -5px;
+  border-right: 1px solid var(--border-primary, #3a3f47);
+  border-bottom: 1px solid var(--border-primary, #3a3f47);
+}
+
+.contextual-tooltip__popover--below .contextual-tooltip__arrow {
+  top: -5px;
+  border-left: 1px solid var(--border-primary, #3a3f47);
+  border-top: 1px solid var(--border-primary, #3a3f47);
+}
+
+/* Explanation text */
+.contextual-tooltip__explanation {
+  margin: 0;
+  font-size: var(--font-xs);
+  color: var(--text-secondary, #b0b8c4);
+  line-height: 1.5;
+}
+
+/* Learn more link */
+.contextual-tooltip__learn-more {
+  display: inline-block;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-xs);
+  color: var(--accent-blue, #58a6ff);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.contextual-tooltip__learn-more:hover {
+  color: var(--accent-blue-hover, #79b8ff);
+  text-decoration: underline;
+}
+
+/* Fade-in animation */
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

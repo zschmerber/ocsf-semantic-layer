@@ -25,6 +25,8 @@ export {
   type LogFormat,
 } from './indexStore';
 
+export { useGuideStore, type GuideState } from './guideStore';
+
 export {
   initializePersistence,
   cleanupPersistence,

@@ -9,6 +9,9 @@
 
 pub mod catalog;
 pub mod index;
+pub mod mapping;
+
+pub use mapping::interpret_mapping;
 
 use axum::{
     extract::State,

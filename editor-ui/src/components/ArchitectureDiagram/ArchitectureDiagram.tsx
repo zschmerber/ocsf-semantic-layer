@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './ArchitectureDiagram.css';
 
-type DiagramView = 'overview' | 'semantic' | 'comparison' | 'databricks' | 'dataflow' | 'index' | 'fullarch';
+type DiagramView = 'overview' | 'semantic' | 'comparison' | 'databricks' | 'dataflow' | 'index' | 'fullarch' | 'crates';
 
 interface DiagramViewOption {
   id: DiagramView;
@@ -17,6 +17,7 @@ const viewOptions: DiagramViewOption[] = [
   { id: 'databricks', label: 'Databricks', description: 'Deployment flow for Databricks with Unity Catalog and Delta Lake' },
   { id: 'dataflow', label: 'Data Flow', description: 'How data flows through the semantic layer' },
   { id: 'index', label: 'Index Structure', description: 'Semantic index components and relationships' },
+  { id: 'crates', label: 'Project Map', description: 'All workspace crates/folders and how they connect' },
 ];
 
 /**
@@ -56,6 +57,7 @@ export function ArchitectureDiagram() {
         {activeView === 'databricks' && <DatabricksDiagram />}
         {activeView === 'dataflow' && <DataFlowDiagram />}
         {activeView === 'index' && <IndexStructureDiagram />}
+        {activeView === 'crates' && <ProjectMapDiagram />}
       </div>
     </div>
   );
@@ -1051,3 +1053,215 @@ function IndexStructureDiagram() {
 }
 
 export default ArchitectureDiagram;
+
+
+function ProjectMapDiagram() {
+  return (
+    <div className="diagram-container project-map-diagram">
+      <h3>📦 Project Map — Crates &amp; Folders</h3>
+      <p className="diagram-description">
+        How every workspace folder fits together. Data flows top-to-bottom: raw OCSF schema is parsed by <code>ocsf-core</code>,
+        enriched by the semantic and index layers, then consumed by output crates that generate artifacts, visualizations, and APIs.
+      </p>
+
+      <svg viewBox="0 0 1100 960" className="project-map-svg" role="img" aria-label="Project map showing all workspace crates and how they connect">
+        {/* ── Foundation Layer ── */}
+        <rect x="400" y="20" width="300" height="70" rx="12" className="crate-box crate-foundation" />
+        <text x="550" y="48" textAnchor="middle" className="crate-name">ocsf-core</text>
+        <text x="550" y="68" textAnchor="middle" className="crate-desc">OCSF schema types, parsing, observables</text>
+
+        {/* Arrow down from core */}
+        <line x1="550" y1="90" x2="550" y2="140" className="arrow-line" markerEnd="url(#pm-arrow)" />
+
+        {/* ── Semantic + Index Layer ── */}
+        <rect x="140" y="140" width="300" height="70" rx="12" className="crate-box crate-semantic" />
+        <text x="290" y="168" textAnchor="middle" className="crate-name">ocsf-semantic</text>
+        <text x="290" y="188" textAnchor="middle" className="crate-desc">Entities, metrics, validation, model store</text>
+
+        <rect x="660" y="140" width="300" height="70" rx="12" className="crate-box crate-index" />
+        <text x="810" y="168" textAnchor="middle" className="crate-name">ocsf-index</text>
+        <text x="810" y="188" textAnchor="middle" className="crate-desc">Table registry, lineage, partitions, stats</text>
+
+        {/* Arrows from core to semantic & index */}
+        <line x1="480" y1="90" x2="340" y2="140" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="620" y1="90" x2="760" y2="140" className="arrow-line" markerEnd="url(#pm-arrow)" />
+
+        {/* Bidirectional between semantic & index */}
+        <line x1="440" y1="170" x2="660" y2="170" className="arrow-line arrow-dashed" markerEnd="url(#pm-arrow)" />
+        <line x1="660" y1="180" x2="440" y2="180" className="arrow-line arrow-dashed" markerEnd="url(#pm-arrow)" />
+        <text x="550" y="163" textAnchor="middle" className="arrow-label">registers / optimizes</text>
+
+        {/* ── Intelligence Layer ── */}
+        <rect x="140" y="260" width="300" height="90" rx="12" className="crate-box crate-vector" />
+        <text x="290" y="288" textAnchor="middle" className="crate-name">ocsf-vector</text>
+        <text x="290" y="306" textAnchor="middle" className="crate-desc">AI field-mapping: turns "src_ip" into</text>
+        <text x="290" y="320" textAnchor="middle" className="crate-desc">OCSF "src_endpoint.ip" via vector similarity</text>
+        <text x="290" y="340" textAnchor="middle" className="crate-desc" style={{ fontStyle: 'italic', fill: '#60a5fa' }}>Embeddings + vector store + mapping suggestions</text>
+
+        <rect x="660" y="260" width="300" height="90" rx="12" className="crate-box crate-catalog" />
+        <text x="810" y="288" textAnchor="middle" className="crate-name">ocsf-catalog</text>
+        <text x="810" y="308" textAnchor="middle" className="crate-desc">Delta Lake &amp; Iceberg catalog plugins</text>
+        <text x="810" y="326" textAnchor="middle" className="crate-desc">Sidecar syncs table metadata</text>
+
+        {/* Arrows from semantic to vector & catalog */}
+        <line x1="290" y1="210" x2="290" y2="260" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="380" y1="210" x2="750" y2="260" className="arrow-line" markerEnd="url(#pm-arrow)" />
+
+        {/* Arrow from index to catalog */}
+        <line x1="810" y1="210" x2="810" y2="260" className="arrow-line" markerEnd="url(#pm-arrow)" />
+
+        {/* ── Output Layer (2 rows of 2 for spacing) ── */}
+        <rect x="130" y="420" width="340" height="70" rx="12" className="crate-box crate-output" />
+        <text x="300" y="448" textAnchor="middle" className="crate-name">ocsf-warehouse</text>
+        <text x="300" y="468" textAnchor="middle" className="crate-desc">dbt models, Cube.js schemas, SQL views, ETL configs</text>
+
+        <rect x="530" y="420" width="340" height="70" rx="12" className="crate-box crate-output" />
+        <text x="700" y="448" textAnchor="middle" className="crate-name">ocsf-viz</text>
+        <text x="700" y="468" textAnchor="middle" className="crate-desc">Entity graphs, architecture diagrams → SVG/PNG</text>
+
+        <rect x="130" y="510" width="340" height="70" rx="12" className="crate-box crate-output" />
+        <text x="300" y="538" textAnchor="middle" className="crate-name">ocsf-etl-engine</text>
+        <text x="300" y="558" textAnchor="middle" className="crate-desc">Standalone ETL workspace: codegen, bridge, server</text>
+
+        <rect x="530" y="510" width="340" height="70" rx="12" className="crate-box crate-output" />
+        <text x="700" y="538" textAnchor="middle" className="crate-name">ocsf-cli</text>
+        <text x="700" y="558" textAnchor="middle" className="crate-desc">CLI: parse, validate, generate, serve</text>
+
+        {/* Arrows from intelligence layer down to output row 1 */}
+        <line x1="220" y1="350" x2="300" y2="420" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="360" y1="350" x2="700" y2="420" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="810" y1="350" x2="700" y2="420" className="arrow-line arrow-dashed" markerEnd="url(#pm-arrow)" />
+        <line x1="810" y1="350" x2="300" y2="420" className="arrow-line arrow-dashed" markerEnd="url(#pm-arrow)" />
+
+        {/* ── Application Layer ── */}
+        <rect x="200" y="650" width="300" height="70" rx="12" className="crate-box crate-app" />
+        <text x="350" y="678" textAnchor="middle" className="crate-name">ocsf-editor</text>
+        <text x="350" y="698" textAnchor="middle" className="crate-desc">Axum REST API, serves editor-ui</text>
+
+        <rect x="560" y="650" width="300" height="70" rx="12" className="crate-box crate-app" />
+        <text x="710" y="678" textAnchor="middle" className="crate-name">editor-ui</text>
+        <text x="710" y="698" textAnchor="middle" className="crate-desc">React/TypeScript frontend (Vite)</text>
+
+        {/* Arrows from outputs to editor */}
+        <line x1="300" y1="580" x2="350" y2="650" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="700" y1="490" x2="400" y2="650" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="300" y1="490" x2="320" y2="510" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <line x1="700" y1="580" x2="450" y2="650" className="arrow-line" markerEnd="url(#pm-arrow)" />
+
+        {/* Arrow from editor to editor-ui */}
+        <line x1="500" y1="685" x2="560" y2="685" className="arrow-line" markerEnd="url(#pm-arrow)" />
+        <text x="530" y="677" textAnchor="middle" className="arrow-label">serves</text>
+
+        {/* ── Demo folder ── */}
+        <rect x="350" y="790" width="300" height="70" rx="12" className="crate-box crate-demo" />
+        <text x="500" y="818" textAnchor="middle" className="crate-name">demo/</text>
+        <text x="500" y="838" textAnchor="middle" className="crate-desc">Sample schemas, HTML dashboards, E2E scripts</text>
+
+        <line x1="500" y1="720" x2="500" y2="790" className="arrow-line arrow-dashed" markerEnd="url(#pm-arrow)" />
+        <text x="510" y="760" className="arrow-label">example data</text>
+
+        {/* ── Layer labels ── */}
+        <rect x="0" y="10" width="110" height="30" rx="6" className="layer-badge layer-foundation" />
+        <text x="55" y="30" textAnchor="middle" className="layer-badge-text">Foundation</text>
+
+        <rect x="0" y="150" width="110" height="30" rx="6" className="layer-badge layer-semantic-badge" />
+        <text x="55" y="170" textAnchor="middle" className="layer-badge-text">Semantic</text>
+
+        <rect x="0" y="290" width="110" height="30" rx="6" className="layer-badge layer-intelligence" />
+        <text x="55" y="310" textAnchor="middle" className="layer-badge-text">Intelligence</text>
+
+        <rect x="0" y="460" width="110" height="30" rx="6" className="layer-badge layer-output-badge" />
+        <text x="55" y="480" textAnchor="middle" className="layer-badge-text">Output</text>
+
+        <rect x="0" y="665" width="110" height="30" rx="6" className="layer-badge layer-app-badge" />
+        <text x="55" y="685" textAnchor="middle" className="layer-badge-text">Application</text>
+
+        {/* Arrow marker */}
+        <defs>
+          <marker id="pm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" className="arrow-head" />
+          </marker>
+        </defs>
+      </svg>
+
+      {/* ── Legend ── */}
+      <div className="project-map-legend">
+        <h4>How it all connects</h4>
+        <div className="legend-grid">
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#3b82f6' }}></span>
+            <div>
+              <span className="legend-title">ocsf-core</span> — Parses raw OCSF JSON schema into Rust types. Every other crate depends on these types.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#8b5cf6' }}></span>
+            <div>
+              <span className="legend-title">ocsf-semantic</span> — Defines business-level entities, metrics, and datasets on top of OCSF event classes. The "what" of your security data.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#06b6d4' }}></span>
+            <div>
+              <span className="legend-title">ocsf-index</span> — Tracks where semantic entities live physically: table registry, field lineage, partition stats. The "where" of your data.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#10b981' }}></span>
+            <div>
+              <span className="legend-title">ocsf-vector</span> — When you have a raw field like "src_ip" and need to map it to the correct OCSF path ("src_endpoint.ip"), this crate uses AI embeddings to suggest the best match. It converts field names into vectors, stores them, and finds the closest OCSF field by similarity — so you don't have to memorize 2,000+ OCSF field paths.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#10b981' }}></span>
+            <div>
+              <span className="legend-title">ocsf-catalog</span> — Plugins for Delta Lake and Apache Iceberg catalogs. Sidecar process syncs catalog metadata.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#f59e0b' }}></span>
+            <div>
+              <span className="legend-title">ocsf-warehouse</span> — Generates dbt models, Cube.js schemas, SQL views, and ETL pipeline configs from the semantic model.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#f59e0b' }}></span>
+            <div>
+              <span className="legend-title">ocsf-viz</span> — Renders entity relationship graphs and architecture diagrams as SVG/PNG.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#f59e0b' }}></span>
+            <div>
+              <span className="legend-title">ocsf-etl-engine</span> — Standalone ETL workspace with its own sub-crates: codegen adapter, semantic bridge, warehouse gen, and an HTTP server.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#f59e0b' }}></span>
+            <div>
+              <span className="legend-title">ocsf-cli</span> — Command-line interface that ties everything together: parse, validate, generate, serve.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#ec4899' }}></span>
+            <div>
+              <span className="legend-title">ocsf-editor</span> — Axum-based REST API server. Exposes semantic model CRUD, catalog browsing, ETL management. Serves the frontend.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#ec4899' }}></span>
+            <div>
+              <span className="legend-title">editor-ui</span> — React + TypeScript frontend built with Vite. Entity editor, architecture diagrams, catalog browser, ETL dashboard.
+            </div>
+          </div>
+          <div className="legend-item">
+            <span className="legend-color" style={{ background: '#6b7280' }}></span>
+            <div>
+              <span className="legend-title">demo/</span> — Sample OCSF schemas, HTML visualization dashboards, E2E test scripts, and example semantic models.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

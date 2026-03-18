@@ -10,7 +10,9 @@
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { useLineageGraph } from '../../api/hooks';
 import { useIndexStore } from '../../store/indexStore';
+import { useReferenceEventStore } from '../../store/referenceEventStore';
 import type { LineageEdge, LineageNode } from '../../types';
+import type { MappingEntry, MappingCoverage } from '../../types/referenceEvent';
 import './LineageVisualization.css';
 
 // ============================================
@@ -121,6 +123,248 @@ function formatRecordCount(count: number): string {
 }
 
 // ============================================
+// Mapping Lineage Types
+// ============================================
+
+type ConfidenceFilter = 'All' | 'High' | 'Medium' | 'Low';
+type VerificationFilter = 'All' | 'Verified' | 'Unverified' | 'Conflict';
+type SortField = 'confidence' | 'verification';
+
+const CONFIDENCE_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
+const VERIFICATION_ORDER: Record<string, number> = { Verified: 0, Unverified: 1, Conflict: 2 };
+
+// ============================================
+// Confidence Badge Component
+// ============================================
+
+function ConfidenceBadge({ confidence }: { confidence: 'High' | 'Medium' | 'Low' }) {
+  const className = `mapping-badge confidence-${confidence.toLowerCase()}`;
+  return <span className={className}>{confidence}</span>;
+}
+
+// ============================================
+// Verification Badge Component
+// ============================================
+
+function VerificationBadge({ status, conflictDetail }: { status: string; conflictDetail?: string | null }) {
+  const className = `mapping-badge verification-${status.toLowerCase()}`;
+  return (
+    <span className={className} title={status === 'Conflict' && conflictDetail ? conflictDetail : undefined}>
+      {status}
+    </span>
+  );
+}
+
+// ============================================
+// Coverage Summary Panel Component
+// ============================================
+
+function CoverageSummaryPanel({ coverage }: { coverage: MappingCoverage }) {
+  const [showUnmapped, setShowUnmapped] = useState(false);
+  const [showUnobserved, setShowUnobserved] = useState(false);
+
+  return (
+    <div className="mapping-coverage-panel">
+      <h4 className="coverage-title">Coverage Summary</h4>
+      <div className="coverage-bars">
+        <div className="coverage-bar-row">
+          <span className="coverage-label">Event fields mapped</span>
+          <div className="coverage-bar-track">
+            <div
+              className="coverage-bar-fill coverage-mapped"
+              style={{ width: `${coverage.percentEventFieldsMapped}%` }}
+            />
+          </div>
+          <span className="coverage-pct">{coverage.percentEventFieldsMapped.toFixed(0)}%</span>
+        </div>
+        <div className="coverage-bar-row">
+          <span className="coverage-label">Unmapped fields</span>
+          <div className="coverage-bar-track">
+            <div
+              className="coverage-bar-fill coverage-unmapped"
+              style={{ width: `${coverage.percentEventFieldsUnmapped}%` }}
+            />
+          </div>
+          <span className="coverage-pct">{coverage.percentEventFieldsUnmapped.toFixed(0)}%</span>
+        </div>
+        <div className="coverage-bar-row">
+          <span className="coverage-label">Unobserved mappings</span>
+          <div className="coverage-bar-track">
+            <div
+              className="coverage-bar-fill coverage-unobserved"
+              style={{ width: `${coverage.percentMappingFieldsUnobserved}%` }}
+            />
+          </div>
+          <span className="coverage-pct">{coverage.percentMappingFieldsUnobserved.toFixed(0)}%</span>
+        </div>
+      </div>
+      {coverage.unmappedFieldPaths.length > 0 && (
+        <div className="coverage-detail-section">
+          <button
+            className="coverage-toggle-btn"
+            onClick={() => setShowUnmapped(!showUnmapped)}
+            aria-expanded={showUnmapped}
+          >
+            {showUnmapped ? '▾' : '▸'} Unmapped fields ({coverage.unmappedFieldPaths.length})
+          </button>
+          {showUnmapped && (
+            <ul className="coverage-field-list">
+              {coverage.unmappedFieldPaths.map((p) => (
+                <li key={p}><code>{p}</code></li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      {coverage.unobservedMappingFields.length > 0 && (
+        <div className="coverage-detail-section">
+          <button
+            className="coverage-toggle-btn"
+            onClick={() => setShowUnobserved(!showUnobserved)}
+            aria-expanded={showUnobserved}
+          >
+            {showUnobserved ? '▾' : '▸'} Unobserved mapping fields ({coverage.unobservedMappingFields.length})
+          </button>
+          {showUnobserved && (
+            <ul className="coverage-field-list">
+              {coverage.unobservedMappingFields.map((p) => (
+                <li key={p}><code>{p}</code></li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// Mapping Lineage Overlay Component
+// ============================================
+
+/**
+ * Displays LLM-interpreted mapping entries as a lineage overlay.
+ * Shows raw_field → ocsf_field with transformation, confidence, and verification badges.
+ * Includes filter/sort controls and a coverage summary panel.
+ *
+ * Requirements: 6.5, 6.6, 15.13, 15.14, 16.5, 16.6, 17.2, 17.3
+ */
+function MappingLineageOverlay({
+  entries,
+  coverage,
+}: {
+  entries: MappingEntry[];
+  coverage: MappingCoverage | null;
+}) {
+  const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceFilter>('All');
+  const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>('All');
+  const [sortBy, setSortBy] = useState<SortField>('confidence');
+
+  const filteredAndSorted = useMemo(() => {
+    let result = [...entries];
+
+    if (confidenceFilter !== 'All') {
+      result = result.filter((e) => e.confidence === confidenceFilter);
+    }
+    if (verificationFilter !== 'All') {
+      result = result.filter((e) => e.verificationStatus === verificationFilter);
+    }
+
+    result.sort((a, b) => {
+      if (sortBy === 'confidence') {
+        return (CONFIDENCE_ORDER[a.confidence] ?? 3) - (CONFIDENCE_ORDER[b.confidence] ?? 3);
+      }
+      return (VERIFICATION_ORDER[a.verificationStatus] ?? 3) - (VERIFICATION_ORDER[b.verificationStatus] ?? 3);
+    });
+
+    return result;
+  }, [entries, confidenceFilter, verificationFilter, sortBy]);
+
+  return (
+    <div className="mapping-lineage-overlay">
+      <div className="mapping-lineage-banner" role="status">
+        <span className="banner-icon">🔗</span>
+        Lineage auto-populated from LLM-interpreted mapping — review and edit
+      </div>
+
+      <div className="mapping-lineage-controls">
+        <div className="mapping-filter-group">
+          <label htmlFor="confidence-filter">Confidence:</label>
+          <select
+            id="confidence-filter"
+            value={confidenceFilter}
+            onChange={(e) => setConfidenceFilter(e.target.value as ConfidenceFilter)}
+          >
+            <option value="All">All</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+        <div className="mapping-filter-group">
+          <label htmlFor="verification-filter">Verification:</label>
+          <select
+            id="verification-filter"
+            value={verificationFilter}
+            onChange={(e) => setVerificationFilter(e.target.value as VerificationFilter)}
+          >
+            <option value="All">All</option>
+            <option value="Verified">Verified</option>
+            <option value="Unverified">Unverified</option>
+            <option value="Conflict">Conflict</option>
+          </select>
+        </div>
+        <div className="mapping-filter-group">
+          <label htmlFor="sort-field">Sort by:</label>
+          <select
+            id="sort-field"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortField)}
+          >
+            <option value="confidence">Confidence</option>
+            <option value="verification">Verification Status</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mapping-entries-table" role="table" aria-label="Mapping entries">
+        <div className="mapping-table-header" role="row">
+          <span className="mapping-col-field" role="columnheader">Raw Field → OCSF Field</span>
+          <span className="mapping-col-transform" role="columnheader">Transformation</span>
+          <span className="mapping-col-confidence" role="columnheader">Confidence</span>
+          <span className="mapping-col-verification" role="columnheader">Verification</span>
+        </div>
+        {filteredAndSorted.length === 0 ? (
+          <div className="mapping-empty-row">No entries match the current filters.</div>
+        ) : (
+          filteredAndSorted.map((entry, i) => (
+            <div className="mapping-table-row" role="row" key={`${entry.rawField}-${entry.ocsfField}-${i}`}>
+              <span className="mapping-col-field" role="cell">
+                <code className="field-raw">{entry.rawField}</code>
+                <span className="field-arrow">→</span>
+                <code className="field-ocsf">{entry.ocsfField}</code>
+              </span>
+              <span className="mapping-col-transform" role="cell" title={entry.explanation ?? undefined}>
+                {entry.transformation || '—'}
+                {entry.explanation && <span className="transform-hint" title={entry.explanation}> ℹ️</span>}
+              </span>
+              <span className="mapping-col-confidence" role="cell">
+                <ConfidenceBadge confidence={entry.confidence} />
+              </span>
+              <span className="mapping-col-verification" role="cell">
+                <VerificationBadge status={entry.verificationStatus} conflictDetail={entry.conflictDetail} />
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+      {coverage && <CoverageSummaryPanel coverage={coverage} />}
+    </div>
+  );
+}
+
+// ============================================
 // Main Component
 // ============================================
 
@@ -136,6 +380,7 @@ function formatRecordCount(count: number): string {
  */
 export function LineageVisualization({ targetTable }: LineageVisualizationProps) {
   const { lineageFilter, setLineageFilter } = useIndexStore();
+  const { interpretedMapping, mappingCoverage } = useReferenceEventStore();
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   
@@ -277,6 +522,13 @@ export function LineageVisualization({ targetTable }: LineageVisualizationProps)
   if (!graph || (graph.nodes.length === 0 && graph.edges.length === 0)) {
     return (
       <div className="lineage-visualization">
+        {/* Show mapping overlay even when no lineage graph data (Requirement 6.5, 6.6) */}
+        {interpretedMapping && (
+          <MappingLineageOverlay
+            entries={interpretedMapping.entries}
+            coverage={mappingCoverage}
+          />
+        )}
         <div className="lineage-empty">
           <span className="empty-icon">📊</span>
           <span className="empty-title">No lineage data</span>
@@ -292,6 +544,14 @@ export function LineageVisualization({ targetTable }: LineageVisualizationProps)
   
   return (
     <div className="lineage-visualization">
+      {/* Mapping lineage overlay when LLM-interpreted mapping available (Requirement 6.5, 6.6) */}
+      {interpretedMapping && (
+        <MappingLineageOverlay
+          entries={interpretedMapping.entries}
+          coverage={mappingCoverage}
+        />
+      )}
+
       {/* Header with title and filter (Requirement 8.7) */}
       <div className="lineage-header">
         <h3>Data Lineage</h3>

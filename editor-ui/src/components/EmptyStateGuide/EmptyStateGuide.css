@@ -1,0 +1,105 @@
+/**
+ * EmptyStateGuide styles — guided empty state panel with icon, message,
+ * and call-to-action button.
+ *
+ * Warning style (yellow/orange) when prerequisites not met.
+ * Info style (blue) when prerequisites met and ready for action.
+ * Uses existing dark theme CSS variables.
+ *
+ * Requirements: 4.3
+ */
+
+.empty-state-guide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  max-width: 420px;
+  margin: var(--spacing-xl) auto;
+  gap: var(--spacing-sm);
+}
+
+/* Warning — prerequisites not met (yellow/orange) */
+.empty-state-guide--warning {
+  background: rgba(255, 185, 56, 0.08);
+  border: 1px solid rgba(255, 185, 56, 0.25);
+}
+
+/* Ready — prerequisites met (blue/info) */
+.empty-state-guide--ready {
+  background: rgba(88, 166, 255, 0.08);
+  border: 1px solid rgba(88, 166, 255, 0.25);
+}
+
+/* Icon */
+.empty-state-guide__icon {
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Content */
+.empty-state-guide__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Heading (ready state) */
+.empty-state-guide__heading {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--accent-blue);
+  margin: 0;
+}
+
+/* Description (ready state) */
+.empty-state-guide__description {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Message (warning state) */
+.empty-state-guide__message {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.empty-state-guide--warning .empty-state-guide__message {
+  color: var(--accent-yellow, #ffb938);
+}
+
+/* Navigation button (prerequisite link) */
+.empty-state-guide__nav-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  margin-top: var(--spacing-sm);
+  background: rgba(255, 185, 56, 0.12);
+  border: 1px solid rgba(255, 185, 56, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--accent-yellow, #ffb938);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.empty-state-guide__nav-button:hover {
+  background: rgba(255, 185, 56, 0.2);
+  border-color: rgba(255, 185, 56, 0.5);
+}
+
+.empty-state-guide__nav-button:focus-visible {
+  outline: 2px solid var(--accent-yellow, #ffb938);
+  outline-offset: 2px;
+}

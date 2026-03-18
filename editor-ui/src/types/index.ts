@@ -864,3 +864,10 @@ export interface SyncResult {
   pull: PullResult;
   conflicts_resolved: number;
 }
+
+
+// ============================================
+// Guide Types (Guided Wizard Workflow)
+// ============================================
+
+export * from './guide';
